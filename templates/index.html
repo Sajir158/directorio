@@ -1,1 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard IoT MQTT + Flask</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        .container {
+            width: min(1000px, 94%);
+            margin: auto;
+            padding: 30px 0;
+        }
+
+        .card {
+            background: #111827;
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .metric {
+            background: #1f2937;
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .label {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .value {
+            font-size: 30px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        #led {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: red;
+            display: inline-block;
+            margin-left: 10px;
+            box-shadow: 0 0 18px rgba(239,68,68,0.9);
+        }
+
+        #alarma {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(34,197,94,0.12);
+            color: #22c55e;
+        }
+
+        .chart-container {
+            height: 380px;
+        }
+
+        canvas {
+            background: #020617;
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        @media(max-width: 700px) {
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="card">
+        <h1>Dashboard IoT MQTT + Flask WAN</h1>
+        <p>Datos recibidos por MQTT desde ESP32 y visualizados vía fetch + Chart.js.</p>
+    </div>
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="label">ADC actual</div>
+            <div class="value"><span id="adc_value">0</span> V</div>
+        </div>
+
+        <div class="metric">
+            <div class="label">Threshold</div>
+            <div class="value"><span id="threshold_value">0</span> V</div>
+        </div>
+
+        <div class="metric">
+            <div class="label">Pin23</div>
+            <div class="value"><span id="pin23_value">0</span><span id="led"></span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div id="alarma">NORMAL</div>
+    </div>
+
+    <div class="card">
+        <h2>ADC vs Threshold</h2>
+        <div class="chart-container">
+            <canvas id="grafica"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const ctx = document.getElementById("grafica").getContext("2d");
+
+const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: "ADC1",
+                data: [],
+                borderWidth: 3,
+                tension: 0.25,
+                pointRadius: 2
+            },
+            {
+                label: "Threshold",
+                data: [],
+                borderWidth: 2,
+                borderDash: [6, 6],
+                pointRadius: 0
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: "#e5e7eb"
+                }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: "#9ca3af" },
+                grid: { color: "rgba(255,255,255,0.08)" }
+            },
+            y: {
+                min: 0,
+                max: 5,
+                ticks: { color: "#9ca3af" },
+                grid: { color: "rgba(255,255,255,0.08)" }
+            }
+        }
+    }
+});
+
+function actualizarDashboard() {
+    fetch("/history")
+        .then(res => res.json())
+        .then(data => {
+            chart.data.labels = data.time;
+            chart.data.datasets[0].data = data.adc1;
+            chart.data.datasets[1].data = data.threshold;
+            chart.update();
+
+            const n = data.adc1.length;
+            if (n === 0) return;
+
+            const adc = data.adc1[n - 1];
+            const threshold = data.threshold[n - 1];
+            const pin23 = data.pin23[n - 1];
+
+            document.getElementById("adc_value").innerText = Number(adc).toFixed(3);
+            document.getElementById("threshold_value").innerText = Number(threshold).toFixed(2);
+            document.getElementById("pin23_value").innerText = pin23;
+
+            const led = document.getElementById("led");
+            if (pin23 == 1) {
+                led.style.background = "#22c55e";
+                led.style.boxShadow = "0 0 18px rgba(34,197,94,0.9)";
+            } else {
+                led.style.background = "#ef4444";
+                led.style.boxShadow = "0 0 18px rgba(239,68,68,0.9)";
+            }
+
+            const alarma = document.getElementById("alarma");
+            if (adc > threshold) {
+                alarma.innerText = "🚨 ALARMA: ADC supera el threshold";
+                alarma.style.color = "#ef4444";
+                alarma.style.background = "rgba(239,68,68,0.12)";
+            } else {
+                alarma.innerText = "NORMAL";
+                alarma.style.color = "#22c55e";
+                alarma.style.background = "rgba(34,197,94,0.12)";
+            }
+        })
+        .catch(err => console.error("Error fetch:", err));
+}
+
+setInterval(actualizarDashboard, 1000);
+actualizarDashboard();
+</script>
+</body>
+</html>
