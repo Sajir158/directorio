@@ -1,94 +1,600 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
+
 <head>
-    <title>ESP32 Dashboard</title>
-</head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ESP32 Smart Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    font-family: 'Segoe UI', sans-serif;
+
+    background:
+    linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+
+    min-height:100vh;
+
+    color:white;
+
+    overflow-x:hidden;
+}
+
+.container{
+
+    width:min(1300px,94%);
+
+    margin:auto;
+
+    padding:30px 0;
+}
+
+.title{
+
+    text-align:center;
+
+    margin-bottom:35px;
+}
+
+.title h1{
+
+    font-size:52px;
+
+    font-weight:800;
+
+    letter-spacing:2px;
+
+    background:linear-gradient(90deg,#00f5ff,#7d5fff,#ff6ec7);
+
+    -webkit-background-clip:text;
+
+    -webkit-text-fill-color:transparent;
+}
+
+.title p{
+
+    margin-top:10px;
+
+    color:#cbd5e1;
+
+    font-size:18px;
+}
+
+.grid{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(280px,1fr));
+
+    gap:25px;
+}
+
+.card{
+
+    background:rgba(255,255,255,0.06);
+
+    backdrop-filter:blur(18px);
+
+    border:1px solid rgba(255,255,255,0.08);
+
+    border-radius:24px;
+
+    padding:25px;
+
+    box-shadow:
+    0 8px 30px rgba(0,0,0,0.35);
+
+    transition:0.3s;
+}
+
+.card:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:
+    0 12px 40px rgba(0,0,0,0.45);
+}
+
+.label{
+
+    color:#cbd5e1;
+
+    font-size:15px;
+
+    letter-spacing:1px;
+}
+
+.value{
+
+    font-size:48px;
+
+    font-weight:800;
+
+    margin-top:15px;
+}
+
+#adc_value{
+
+    color:#00f5ff;
+}
+
+#threshold_value{
+
+    color:#feca57;
+}
+
+#pwm_value{
+
+    color:#ff6ec7;
+}
+
+.slider{
+
+    width:100%;
+
+    margin-top:20px;
+
+    appearance:none;
+
+    height:12px;
+
+    border-radius:20px;
+
+    background:#1e293b;
+
+    outline:none;
+}
+
+.slider::-webkit-slider-thumb{
+
+    appearance:none;
+
+    width:28px;
+
+    height:28px;
+
+    border-radius:50%;
+
+    background:white;
+
+    cursor:pointer;
+
+    box-shadow:
+    0 0 20px rgba(255,255,255,0.7);
+}
+
+#led{
+
+    width:45px;
+
+    height:45px;
+
+    border-radius:50%;
+
+    margin-top:22px;
+
+    background:#111;
+
+    transition:0.2s;
+}
+
+.alerta{
+
+    margin-top:28px;
+
+    text-align:center;
+
+    padding:22px;
+
+    border-radius:22px;
+
+    font-size:30px;
+
+    font-weight:700;
+
+    transition:0.3s;
+}
+
+.normal{
+
+    background:
+    linear-gradient(90deg,
+    rgba(0,255,170,0.15),
+    rgba(0,255,255,0.15));
+
+    color:#00ffae;
+
+    border:1px solid rgba(0,255,170,0.25);
+}
+
+.peligro{
+
+    background:
+    linear-gradient(90deg,
+    rgba(255,0,102,0.18),
+    rgba(255,94,98,0.18));
+
+    color:#ff4d6d;
+
+    border:1px solid rgba(255,77,109,0.35);
+
+    animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+
+    0%{
+        transform:scale(1);
+    }
+
+    50%{
+        transform:scale(1.02);
+    }
+
+    100%{
+        transform:scale(1);
+    }
+}
+
+.chart-card{
+
+    margin-top:30px;
+}
+
+canvas{
+
+    width:100% !important;
+
+    height:500px !important;
+}
+
+.footer{
+
+    text-align:center;
+
+    margin-top:30px;
+
+    color:#94a3b8;
+
+    font-size:14px;
+}
+
 </style>
+
+</head>
 
 <body>
 
-<h2>ADC</h2>
-<h3 id="adc">0</h3>
+<div class="container">
 
-    <div class="card">
-        <h2>Control del ciclo de trabajo del PWM</h2>
-        <input type="range" id="pwm_slider" min="0" max="100" step="1" value="50"
-               oninput="mostrarDuty(this.value)"
-               onchange="enviarDuty(this.value)">        
-       </div>
+    <div class="title">
 
-<h2 id="duty_value">50</h2> 
+        <h1>ESP32 SMART DASHBOARD</h1>
+
+        <p>Monitoreo y control IoT en tiempo real</p>
+
+    </div>
+
+    <div class="grid">
+
+        <!-- ADC -->
+
+        <div class="card">
+
+            <div class="label">
+                ADC ACTUAL
+            </div>
+
+            <div class="value" id="adc_value">
+                0.000V
+            </div>
+
+        </div>
+
+        <!-- THRESHOLD -->
+
+        <div class="card">
+
+            <div class="label">
+                THRESHOLD
+            </div>
+
+            <div class="value" id="threshold_value">
+                2.5V
+            </div>
+
+            <input
+            type="range"
+            min="0"
+            max="5"
+            step="0.1"
+            value="2.5"
+            class="slider"
+            oninput="cambiarThreshold(this.value)">
+
+        </div>
+
+        <!-- PWM -->
+
+        <div class="card">
+
+            <div class="label">
+                PWM LED
+            </div>
+
+            <div class="value" id="pwm_value">
+                0%
+            </div>
+
+            <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value="0"
+            class="slider"
+            oninput="cambiarPWM(this.value)">
+
+            <div id="led"></div>
+
+        </div>
+
+    </div>
+
+    <!-- ALERTA -->
+
+    <div id="alerta" class="alerta normal">
+
+        SISTEMA ESTABLE
+
+    </div>
+
+    <!-- GRAFICA -->
+
+    <div class="card chart-card">
+
+        <canvas id="grafica"></canvas>
+
+    </div>
+
+    <div class="footer">
+
+        IoT Dashboard · ESP32 + Flask + Chart.js
+
+    </div>
+
+</div>
+
 <script>
 
-function mostrarDuty(valor) {
-console.log(valor);
-    document.getElementById("duty_value").innerText = valor;
-}
+const ctx =
+document.getElementById("grafica");
 
-function enviarDuty(valor) {
-    fetch("/threshold", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
+const chart = new Chart(ctx, {
+
+    type:"line",
+
+    data:{
+
+        labels:[],
+
+        datasets:[
+
+            {
+                label:"ADC",
+
+                data:[],
+
+                borderColor:"#00f5ff",
+
+                backgroundColor:"rgba(0,245,255,0.15)",
+
+                borderWidth:4,
+
+                tension:0.35,
+
+                pointRadius:2,
+
+                fill:true
+            },
+
+            {
+                label:"Threshold",
+
+                data:[],
+
+                borderColor:"#feca57",
+
+                borderWidth:3,
+
+                borderDash:[10,5],
+
+                pointRadius:0
+            }
+        ]
+    },
+
+    options:{
+
+        responsive:true,
+
+        maintainAspectRatio:false,
+
+        animation:false,
+
+        plugins:{
+
+            legend:{
+
+                labels:{
+                    color:"white",
+                    font:{
+                        size:16
+                    }
+                }
+            }
         },
-        body: JSON.stringify({
-            threshold: parseFloat(valor)
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        console.log("Threshold actualizado:", data);
-    })
-    .catch(err => console.error("Error POST:", err));
-}
 
+        scales:{
 
+            x:{
 
-function actualizar(){
-    fetch('/refresh')
-        .then(res => res.json())
-        .then(data => {
-            let ultimo = data.adc1[data.adc1.length - 1];
-            document.getElementById("adc").innerText = ultimo;
-        });
-}
+                ticks:{
+                    color:"#cbd5e1"
+                },
 
-function enviarDuty(valor) {
-    fetch("/refresh", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            duty_cycle: parseFloat(valor)
-        })
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error("HTTP error: " + res.status);
+                grid:{
+                    color:"rgba(255,255,255,0.05)"
+                }
+            },
+
+            y:{
+
+                min:0,
+                max:5,
+
+                ticks:{
+                    color:"#cbd5e1"
+                },
+
+                grid:{
+                    color:"rgba(255,255,255,0.05)"
+                }
+            }
         }
-        return res.json();
-    })
-    .then(data => {
-        console.log("Duty cycle actualizado:", data);
-    })
-    .catch(err => console.error("Error POST dutyCycle:", err));
+    }
+});
+
+function cambiarPWM(valor){
+
+    document.getElementById("pwm_value")
+    .innerText = valor + "%";
+
+    fetch("/pwm",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+            pwm:parseInt(valor)
+        })
+    });
+
+    const led =
+    document.getElementById("led");
+
+    let glow = valor / 100;
+
+    led.style.background =
+    `rgba(255,110,199,${glow})`;
+
+    led.style.boxShadow =
+    `0 0 ${20 + glow*50}px rgba(255,110,199,${glow})`;
 }
 
+function cambiarThreshold(valor){
 
+    document.getElementById("threshold_value")
+    .innerText =
+    Number(valor).toFixed(1) + "V";
 
+    fetch("/threshold",{
 
-setInterval(actualizar, 1000);
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+            threshold:parseFloat(valor)
+        })
+    });
+}
+
+function actualizarDashboard(){
+
+    fetch("/history")
+
+    .then(res=>res.json())
+
+    .then(data=>{
+
+        chart.data.labels = data.time;
+
+        chart.data.datasets[0].data =
+        data.adc1;
+
+        chart.data.datasets[1].data =
+        data.threshold;
+
+        chart.update();
+
+        const n =
+        data.adc1.length;
+
+        if(n===0) return;
+
+        const adc =
+        Number(data.adc1[n-1]);
+
+        const threshold =
+        Number(data.threshold[n-1]);
+
+        document.getElementById("adc_value")
+        .innerText =
+        adc.toFixed(3) + "V";
+
+        const alerta =
+        document.getElementById("alerta");
+
+        if(adc > threshold){
+
+            alerta.innerText =
+            "⚠ ADC SUPERA EL THRESHOLD";
+
+            alerta.className =
+            "alerta peligro";
+
+        }else{
+
+            alerta.innerText =
+            "SISTEMA ESTABLE";
+
+            alerta.className =
+            "alerta normal";
+        }
+    })
+
+    .catch(err=>{
+
+        console.error(err);
+
+    });
+}
+
+setInterval(actualizarDashboard,1000);
+
+actualizarDashboard();
+
 </script>
 
 </body>
+
 </html>
