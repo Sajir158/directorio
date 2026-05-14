@@ -5,7 +5,8 @@ import os
 app = Flask(__name__)
 
 MAX_SAMPLES = 50
-
+pwm_value = 0
+threshold_value = 2.5
 # ---------------- DATA BUFFER ----------------
 history = {
     "time": [],
@@ -24,6 +25,7 @@ def index():
 def recibir_data():
 
     global history
+    global threshold_value
 
     data = request.get_json()
 
@@ -36,20 +38,17 @@ def recibir_data():
     try:
 
         adc1 = float(data.get("adc1", 0))
-        threshold = float(data.get("threshold", 2.5))
         pin23 = int(data.get("pin23", 0))
 
         history["time"].append(time.strftime("%H:%M:%S"))
         history["adc1"].append(adc1)
-        history["threshold"].append(threshold)
+        history["threshold"].append(threshold_value)
         history["pin23"].append(pin23)
 
-        # limitar historial
         for key in history:
+
             if len(history[key]) > MAX_SAMPLES:
                 history[key].pop(0)
-
-        print("POST recibido:", data)
 
         return jsonify({
             "ok": True,
@@ -68,6 +67,46 @@ def recibir_data():
 def history_route():
     return jsonify(history)
 
+@app.route("/pwm", methods=["GET", "POST"])
+def pwm():
+
+    global pwm_value
+
+    if request.method == "POST":
+
+        data = request.get_json()
+
+        pwm_value = int(data.get("pwm", 0))
+
+        return jsonify({
+            "ok": True,
+            "pwm": pwm_value
+        })
+
+    return jsonify({
+        "pwm": pwm_value
+    })
+
+@app.route("/threshold", methods=["GET", "POST"])
+def threshold():
+
+    global threshold_value
+
+    if request.method == "POST":
+
+        data = request.get_json()
+
+        threshold_value = float(data.get("threshold", 2.5))
+
+        return jsonify({
+            "ok": True,
+            "threshold": threshold_value
+        })
+
+    return jsonify({
+        "threshold": threshold_value
+    })
+    
 # ---------------- DEBUG ----------------
 @app.route("/debug")
 def debug():
