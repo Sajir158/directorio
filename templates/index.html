@@ -34,30 +34,29 @@ body{
 
 .container{
 
-    width:min(1300px,94%);
+    width:min(1200px,95%);
 
     margin:auto;
 
-    padding:30px 0;
+    padding:15px 0;
 }
 
 .title{
 
     text-align:center;
 
-    margin-bottom:35px;
+    margin-bottom:18px;
 }
 
 .title h1{
 
-    font-size:52px;
+    font-size:34px;
 
     font-weight:800;
 
-    letter-spacing:2px;
+    letter-spacing:1px;
 
-    background:
-    linear-gradient(90deg,#00f5ff,#7d5fff,#ff6ec7);
+    background:linear-gradient(90deg,#00f5ff,#7d5fff,#ff6ec7);
 
     -webkit-background-clip:text;
 
@@ -78,9 +77,9 @@ body{
     display:grid;
 
     grid-template-columns:
-    repeat(auto-fit,minmax(280px,1fr));
+    repeat(auto-fit,minmax(240px,1fr));
 
-    gap:25px;
+    gap:15px;
 }
 
 .card{
@@ -91,9 +90,9 @@ body{
 
     border:1px solid rgba(255,255,255,0.08);
 
-    border-radius:24px;
+    border-radius:20px;
 
-    padding:25px;
+    padding:18px;
 
     box-shadow:
     0 8px 30px rgba(0,0,0,0.35);
@@ -103,28 +102,28 @@ body{
 
 .card:hover{
 
-    transform:translateY(-4px);
+    transform:translateY(-3px);
 
     box-shadow:
-    0 12px 40px rgba(0,0,0,0.45);
+    0 10px 35px rgba(0,0,0,0.45);
 }
 
 .label{
 
     color:#cbd5e1;
 
-    font-size:15px;
+    font-size:13px;
 
     letter-spacing:1px;
 }
 
 .value{
 
-    font-size:48px;
+    font-size:34px;
 
     font-weight:800;
 
-    margin-top:15px;
+    margin-top:10px;
 }
 
 #adc_value{
@@ -146,11 +145,11 @@ body{
 
     width:100%;
 
-    margin-top:20px;
+    margin-top:14px;
 
     appearance:none;
 
-    height:12px;
+    height:10px;
 
     border-radius:20px;
 
@@ -163,9 +162,9 @@ body{
 
     appearance:none;
 
-    width:28px;
+    width:22px;
 
-    height:28px;
+    height:22px;
 
     border-radius:50%;
 
@@ -174,18 +173,18 @@ body{
     cursor:pointer;
 
     box-shadow:
-    0 0 20px rgba(255,255,255,0.7);
+    0 0 12px rgba(255,255,255,0.7);
 }
 
 #led{
 
-    width:45px;
+    width:32px;
 
-    height:45px;
+    height:32px;
 
     border-radius:50%;
 
-    margin-top:22px;
+    margin-top:14px;
 
     background:#111;
 
@@ -194,13 +193,13 @@ body{
 
 #led_boton{
 
-    width:60px;
+    width:38px;
 
-    height:60px;
+    height:38px;
 
     border-radius:50%;
 
-    margin-top:20px;
+    margin-top:14px;
 
     background:#111;
 
@@ -211,9 +210,9 @@ body{
 
 #estado_boton{
 
-    margin-top:15px;
+    margin-top:10px;
 
-    font-size:22px;
+    font-size:18px;
 
     font-weight:bold;
 
@@ -222,15 +221,15 @@ body{
 
 .alerta{
 
-    margin-top:28px;
+    margin-top:18px;
 
     text-align:center;
 
-    padding:22px;
+    padding:14px;
 
-    border-radius:22px;
+    border-radius:18px;
 
-    font-size:30px;
+    font-size:22px;
 
     font-weight:700;
 
@@ -240,8 +239,7 @@ body{
 .normal{
 
     background:
-    linear-gradient(
-    90deg,
+    linear-gradient(90deg,
     rgba(0,255,170,0.15),
     rgba(0,255,255,0.15));
 
@@ -253,8 +251,7 @@ body{
 .peligro{
 
     background:
-    linear-gradient(
-    90deg,
+    linear-gradient(90deg,
     rgba(255,0,102,0.18),
     rgba(255,94,98,0.18));
 
@@ -272,7 +269,7 @@ body{
     }
 
     50%{
-        transform:scale(1.02);
+        transform:scale(1.01);
     }
 
     100%{
@@ -282,25 +279,25 @@ body{
 
 .chart-card{
 
-    margin-top:30px;
+    margin-top:18px;
 }
 
 canvas{
 
     width:100% !important;
 
-    height:500px !important;
+    height:280px !important;
 }
 
 .footer{
 
     text-align:center;
 
-    margin-top:30px;
+    margin-top:16px;
 
     color:#94a3b8;
 
-    font-size:14px;
+    font-size:12px;
 }
 
 </style>
@@ -388,7 +385,9 @@ canvas{
             </div>
 
             <div id="estado_boton">
+
                 SIN PRESIONAR
+
             </div>
 
             <div id="led_boton"></div>
@@ -441,14 +440,13 @@ const chart = new Chart(ctx, {
 
                 borderColor:"#00f5ff",
 
-                backgroundColor:
-                "rgba(0,245,255,0.15)",
+                backgroundColor:"rgba(0,245,255,0.15)",
 
-                borderWidth:4,
+                borderWidth:3,
 
                 tension:0.35,
 
-                pointRadius:2,
+                pointRadius:1.5,
 
                 fill:true
             },
@@ -460,7 +458,7 @@ const chart = new Chart(ctx, {
 
                 borderColor:"#feca57",
 
-                borderWidth:3,
+                borderWidth:2,
 
                 borderDash:[10,5],
 
@@ -485,7 +483,7 @@ const chart = new Chart(ctx, {
                     color:"white",
 
                     font:{
-                        size:16
+                        size:12
                     }
                 }
             }
@@ -496,12 +494,15 @@ const chart = new Chart(ctx, {
             x:{
 
                 ticks:{
-                    color:"#cbd5e1"
+                    color:"#cbd5e1",
+
+                    font:{
+                        size:10
+                    }
                 },
 
                 grid:{
-                    color:
-                    "rgba(255,255,255,0.05)"
+                    color:"rgba(255,255,255,0.05)"
                 }
             },
 
@@ -512,12 +513,15 @@ const chart = new Chart(ctx, {
                 max:3.3,
 
                 ticks:{
-                    color:"#cbd5e1"
+                    color:"#cbd5e1",
+
+                    font:{
+                        size:10
+                    }
                 },
 
                 grid:{
-                    color:
-                    "rgba(255,255,255,0.05)"
+                    color:"rgba(255,255,255,0.05)"
                 }
             }
         }
@@ -551,7 +555,7 @@ function cambiarPWM(valor){
     `rgba(255,110,199,${glow})`;
 
     led.style.boxShadow =
-    `0 0 ${20 + glow*50}px rgba(255,110,199,${glow})`;
+    `0 0 ${12 + glow*30}px rgba(255,110,199,${glow})`;
 }
 
 function cambiarThreshold(valor){
@@ -582,8 +586,7 @@ function actualizarDashboard(){
 
     .then(data=>{
 
-        chart.data.labels =
-        data.time;
+        chart.data.labels = data.time;
 
         chart.data.datasets[0].data =
         data.adc1;
@@ -643,7 +646,7 @@ function actualizarDashboard(){
             "#00ff88";
 
             ledBoton.style.boxShadow =
-            "0 0 40px #00ff88";
+            "0 0 30px #00ff88";
 
             estadoBoton.innerText =
             "PRESIONADO";
