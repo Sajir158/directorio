@@ -20,7 +20,7 @@
 
 body{
 
-    font-family: 'Segoe UI', sans-serif;
+    font-family:'Segoe UI',sans-serif;
 
     background:
     linear-gradient(135deg,#0f0c29,#302b63,#24243e);
@@ -56,7 +56,8 @@ body{
 
     letter-spacing:2px;
 
-    background:linear-gradient(90deg,#00f5ff,#7d5fff,#ff6ec7);
+    background:
+    linear-gradient(90deg,#00f5ff,#7d5fff,#ff6ec7);
 
     -webkit-background-clip:text;
 
@@ -191,6 +192,34 @@ body{
     transition:0.2s;
 }
 
+#led_boton{
+
+    width:60px;
+
+    height:60px;
+
+    border-radius:50%;
+
+    margin-top:20px;
+
+    background:#111;
+
+    transition:0.08s;
+
+    box-shadow:0 0 0px transparent;
+}
+
+#estado_boton{
+
+    margin-top:15px;
+
+    font-size:22px;
+
+    font-weight:bold;
+
+    color:#cbd5e1;
+}
+
 .alerta{
 
     margin-top:28px;
@@ -211,7 +240,8 @@ body{
 .normal{
 
     background:
-    linear-gradient(90deg,
+    linear-gradient(
+    90deg,
     rgba(0,255,170,0.15),
     rgba(0,255,255,0.15));
 
@@ -223,7 +253,8 @@ body{
 .peligro{
 
     background:
-    linear-gradient(90deg,
+    linear-gradient(
+    90deg,
     rgba(255,0,102,0.18),
     rgba(255,94,98,0.18));
 
@@ -291,7 +322,6 @@ canvas{
     <div class="grid">
 
         <!-- ADC -->
-
         <div class="card">
 
             <div class="label">
@@ -305,7 +335,6 @@ canvas{
         </div>
 
         <!-- THRESHOLD -->
-
         <div class="card">
 
             <div class="label">
@@ -328,7 +357,6 @@ canvas{
         </div>
 
         <!-- PWM -->
-
         <div class="card">
 
             <div class="label">
@@ -352,10 +380,24 @@ canvas{
 
         </div>
 
+        <!-- BOTON -->
+        <div class="card">
+
+            <div class="label">
+                BOTON ESP32
+            </div>
+
+            <div id="estado_boton">
+                SIN PRESIONAR
+            </div>
+
+            <div id="led_boton"></div>
+
+        </div>
+
     </div>
 
     <!-- ALERTA -->
-
     <div id="alerta" class="alerta normal">
 
         SISTEMA ESTABLE
@@ -363,7 +405,6 @@ canvas{
     </div>
 
     <!-- GRAFICA -->
-
     <div class="card chart-card">
 
         <canvas id="grafica"></canvas>
@@ -400,7 +441,8 @@ const chart = new Chart(ctx, {
 
                 borderColor:"#00f5ff",
 
-                backgroundColor:"rgba(0,245,255,0.15)",
+                backgroundColor:
+                "rgba(0,245,255,0.15)",
 
                 borderWidth:4,
 
@@ -441,6 +483,7 @@ const chart = new Chart(ctx, {
 
                 labels:{
                     color:"white",
+
                     font:{
                         size:16
                     }
@@ -457,21 +500,24 @@ const chart = new Chart(ctx, {
                 },
 
                 grid:{
-                    color:"rgba(255,255,255,0.05)"
+                    color:
+                    "rgba(255,255,255,0.05)"
                 }
             },
 
             y:{
 
                 min:0,
-                max:5,
+
+                max:3.3,
 
                 ticks:{
                     color:"#cbd5e1"
                 },
 
                 grid:{
-                    color:"rgba(255,255,255,0.05)"
+                    color:
+                    "rgba(255,255,255,0.05)"
                 }
             }
         }
@@ -536,7 +582,8 @@ function actualizarDashboard(){
 
     .then(data=>{
 
-        chart.data.labels = data.time;
+        chart.data.labels =
+        data.time;
 
         chart.data.datasets[0].data =
         data.adc1;
@@ -557,6 +604,9 @@ function actualizarDashboard(){
         const threshold =
         Number(data.threshold[n-1]);
 
+        const boton =
+        Number(data.boton[n-1]);
+
         document.getElementById("adc_value")
         .innerText =
         adc.toFixed(3) + "V";
@@ -567,7 +617,7 @@ function actualizarDashboard(){
         if(adc > threshold){
 
             alerta.innerText =
-            "⚠ ADC SUPERA EL THRESHOLD";
+            "ADC SUPERA EL THRESHOLD";
 
             alerta.className =
             "alerta peligro";
@@ -580,6 +630,35 @@ function actualizarDashboard(){
             alerta.className =
             "alerta normal";
         }
+
+        const ledBoton =
+        document.getElementById("led_boton");
+
+        const estadoBoton =
+        document.getElementById("estado_boton");
+
+        if(boton == 1){
+
+            ledBoton.style.background =
+            "#00ff88";
+
+            ledBoton.style.boxShadow =
+            "0 0 40px #00ff88";
+
+            estadoBoton.innerText =
+            "PRESIONADO";
+
+        }else{
+
+            ledBoton.style.background =
+            "#111";
+
+            ledBoton.style.boxShadow =
+            "0 0 0px transparent";
+
+            estadoBoton.innerText =
+            "SIN PRESIONAR";
+        }
     })
 
     .catch(err=>{
@@ -589,7 +668,7 @@ function actualizarDashboard(){
     });
 }
 
-setInterval(actualizarDashboard,1000);
+setInterval(actualizarDashboard,200);
 
 actualizarDashboard();
 
