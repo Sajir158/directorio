@@ -18,7 +18,11 @@ history = {
 
     "time": [],
 
-    "voltaje": []
+    "voltaje": [],
+
+    "corriente": [],
+
+    "potencia": []
 
 }
 
@@ -60,6 +64,12 @@ def recibir_data():
             data.get("voltaje", 0)
         )
 
+        corriente = float(
+            data.get("corriente", 0)
+        )
+
+        potencia = voltaje * corriente
+
         # ===== GUARDAR DATOS =====
 
         history["time"].append(
@@ -69,6 +79,10 @@ def recibir_data():
         history["voltaje"].append(
             voltaje
         )
+
+        history["corriente"].append(corriente)
+
+        history["potencia"].append(potencia)
 
         # ===== LIMITAR HISTORIAL =====
 
