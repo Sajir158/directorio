@@ -4,33 +4,29 @@ import os
 
 app = Flask(__name__)
 
-MAX_SAMPLES = 50
+MAX_SAMPLES = 500
 
-# ---------------- VARIABLES ----------------
-pwm_value = 0
-threshold_value = 2.5
+# ================= HISTORIAL =================
 
-# ---------------- DATA BUFFER ----------------
 history = {
 
     "time": [],
 
-    "adc1": [],
+    "voltaje": [],
 
-    "threshold": [],
+    "corriente": []
 
-    "pin23": [],
-
-    "boton": []
 }
 
-# ---------------- MAIN PAGE ----------------
+# ================= PAGINA =================
+
 @app.route("/")
 def index():
 
     return render_template("index.html")
 
-# ---------------- ESP32 POST DATA ----------------
+# ================= RECIBIR DATOS ESP32 =================
+
 @app.route("/data", methods=["POST"])
 def recibir_data():
 
@@ -50,46 +46,46 @@ def recibir_data():
 
     try:
 
-        adc1 = float(
-            data.get("adc1", 0)
+        voltaje = float(
+            data.get("voltaje", 0)
         )
 
-        pin23 = int(
-            data.get("pin23", 0)
+        corriente = float(
+            data.get("corriente", 0)
         )
 
-        boton = int(
-            data.get("boton", 0)
-        )
+        # ===== GUARDAR DATOS =====
 
         history["time"].append(
             time.strftime("%H:%M:%S")
         )
 
-        history["adc1"].append(adc1)
-
-        history["threshold"].append(
-            threshold_value
+        history["voltaje"].append(
+            voltaje
         )
 
-        history["pin23"].append(pin23)
+        history["corriente"].append(
+            corriente
+        )
 
-        history["boton"].append(boton)
+        # ===== LIMITAR HISTORIAL =====
 
-        # limitar historial
         for key in history:
 
             if len(history[key]) > MAX_SAMPLES:
 
                 history[key].pop(0)
 
-        print("POST recibido:", data)
+        print("Voltaje:", voltaje)
+        print("Corriente:", corriente)
 
         return jsonify({
 
             "ok": True,
 
-            "samples": len(history["adc1"])
+            "samples": len(
+                history["voltaje"]
+            )
 
         })
 
@@ -103,96 +99,15 @@ def recibir_data():
 
         }), 400
 
-# ---------------- FETCH HISTORY ----------------
+# ================= HISTORIAL =================
+
 @app.route("/history")
 def history_route():
 
     return jsonify(history)
 
-# ---------------- PWM ----------------
-@app.route("/pwm", methods=["GET", "POST"])
-def pwm():
+# ================= STATUS =================
 
-    global pwm_value
-
-    if request.method == "POST":
-
-        data = request.get_json()
-
-        pwm_value = int(
-            data.get("pwm", 0)
-        )
-
-        print("PWM:", pwm_value)
-
-        return jsonify({
-
-            "ok": True,
-
-            "pwm": pwm_value
-        })
-
-    return jsonify({
-
-        "pwm": pwm_value
-    })
-
-# ---------------- THRESHOLD ----------------
-@app.route("/threshold", methods=["GET", "POST"])
-def threshold():
-
-    global threshold_value
-
-    if request.method == "POST":
-
-        data = request.get_json()
-
-        threshold_value = float(
-            data.get("threshold", 2.5)
-        )
-
-        print(
-            "Threshold:",
-            threshold_value
-        )
-
-        return jsonify({
-
-            "ok": True,
-
-            "threshold": threshold_value
-        })
-
-    return jsonify({
-
-        "threshold": threshold_value
-    })
-
-# ---------------- DEBUG ----------------
-@app.route("/debug")
-def debug():
-
-    return jsonify({
-
-        "samples":
-        len(history["adc1"]),
-
-        "last_adc":
-        history["adc1"][-1]
-        if history["adc1"]
-        else None,
-
-        "history":
-        history,
-
-        "pwm":
-        pwm_value,
-
-        "threshold":
-        threshold_value
-    })
-
-# ---------------- STATUS ----------------
 @app.route("/status")
 def status():
 
@@ -200,13 +115,35 @@ def status():
 
         "ok": True,
 
-        "mode": "HTTP POST",
-
         "samples":
-        len(history["adc1"])
+        len(history["voltaje"])
+
     })
 
-# ---------------- MAIN ----------------
+# ================= DEBUG =================
+
+@app.route("/debug")
+def debug():
+
+    return jsonify({
+
+        "samples":
+        len(history["voltaje"]),
+
+        "last_voltaje":
+        history["voltaje"][-1]
+        if history["voltaje"]
+        else None,
+
+        "last_corriente":
+        history["corriente"][-1]
+        if history["corriente"]
+        else None
+
+    })
+
+# ================= MAIN =================
+
 if __name__ == "__main__":
 
     port = int(
@@ -220,4 +157,5 @@ if __name__ == "__main__":
         port=port,
 
         debug=False
+
     )
