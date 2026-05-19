@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>ESP32 Smart Dashboard</title>
+<title>Monitoreo Eléctrico</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -16,403 +15,189 @@
     margin:0;
     padding:0;
     box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
 }
 
 body{
-
-    font-family:'Segoe UI',sans-serif;
-
-    background:
-    linear-gradient(135deg,#0f0c29,#302b63,#24243e);
-
-    min-height:100vh;
-
-    color:white;
-
-    overflow-x:hidden;
+    background:#f4f6f8;
+    color:#222;
+    padding:30px;
 }
 
 .container{
-
-    width:min(1200px,95%);
-
+    max-width:1100px;
     margin:auto;
-
-    padding:15px 0;
 }
 
-.title{
-
-    text-align:center;
-
-    margin-bottom:18px;
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:30px;
+    flex-wrap:wrap;
+    gap:20px;
 }
 
-.title h1{
-
-    font-size:34px;
-
-    font-weight:800;
-
-    letter-spacing:1px;
-
-    background:linear-gradient(90deg,#00f5ff,#7d5fff,#ff6ec7);
-
-    -webkit-background-clip:text;
-
-    -webkit-text-fill-color:transparent;
+.header h1{
+    font-size:32px;
+    font-weight:600;
 }
 
-.title p{
-
-    margin-top:10px;
-
-    color:#cbd5e1;
-
-    font-size:18px;
+.status{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:white;
+    padding:12px 18px;
+    border-radius:10px;
+    border:1px solid #ddd;
 }
 
-.grid{
-
-    display:grid;
-
-    grid-template-columns:
-    repeat(auto-fit,minmax(240px,1fr));
-
-    gap:15px;
+.led{
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:red;
 }
 
 .card{
-
-    background:rgba(255,255,255,0.06);
-
-    backdrop-filter:blur(18px);
-
-    border:1px solid rgba(255,255,255,0.08);
-
-    border-radius:20px;
-
-    padding:18px;
-
-    box-shadow:
-    0 8px 30px rgba(0,0,0,0.35);
-
-    transition:0.3s;
-}
-
-.card:hover{
-
-    transform:translateY(-3px);
-
-    box-shadow:
-    0 10px 35px rgba(0,0,0,0.45);
-}
-
-.label{
-
-    color:#cbd5e1;
-
-    font-size:13px;
-
-    letter-spacing:1px;
-}
-
-.value{
-
-    font-size:34px;
-
-    font-weight:800;
-
-    margin-top:10px;
-}
-
-#adc_value{
-
-    color:#00f5ff;
-}
-
-#threshold_value{
-
-    color:#feca57;
-}
-
-#pwm_value{
-
-    color:#ff6ec7;
-}
-
-.slider{
-
-    width:100%;
-
-    margin-top:14px;
-
-    appearance:none;
-
-    height:10px;
-
-    border-radius:20px;
-
-    background:#1e293b;
-
-    outline:none;
-}
-
-.slider::-webkit-slider-thumb{
-
-    appearance:none;
-
-    width:22px;
-
-    height:22px;
-
-    border-radius:50%;
-
     background:white;
-
-    cursor:pointer;
-
-    box-shadow:
-    0 0 12px rgba(255,255,255,0.7);
+    border-radius:12px;
+    padding:25px;
+    border:1px solid #ddd;
 }
 
-#led{
+.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+    flex-wrap:wrap;
+    gap:15px;
+}
 
-    width:32px;
+.buttons{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
 
-    height:32px;
-
-    border-radius:50%;
-
-    margin-top:14px;
-
-    background:#111;
-
+.buttons button{
+    border:none;
+    background:#e5e7eb;
+    color:#222;
+    padding:10px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:15px;
     transition:0.2s;
 }
 
-#led_boton{
-
-    width:38px;
-
-    height:38px;
-
-    border-radius:50%;
-
-    margin-top:14px;
-
-    background:#111;
-
-    transition:0.08s;
-
-    box-shadow:0 0 0px transparent;
+.buttons button:hover{
+    background:#d1d5db;
 }
 
-#estado_boton{
+.buttons .active{
+    background:#2563eb;
+    color:white;
+}
 
-    margin-top:10px;
-
+.value{
+    margin-top:20px;
     font-size:18px;
-
-    font-weight:bold;
-
-    color:#cbd5e1;
-}
-
-.alerta{
-
-    margin-top:18px;
-
-    text-align:center;
-
-    padding:14px;
-
-    border-radius:18px;
-
-    font-size:22px;
-
-    font-weight:700;
-
-    transition:0.3s;
-}
-
-.normal{
-
-    background:
-    linear-gradient(90deg,
-    rgba(0,255,170,0.15),
-    rgba(0,255,255,0.15));
-
-    color:#00ffae;
-
-    border:1px solid rgba(0,255,170,0.25);
-}
-
-.peligro{
-
-    background:
-    linear-gradient(90deg,
-    rgba(255,0,102,0.18),
-    rgba(255,94,98,0.18));
-
-    color:#ff4d6d;
-
-    border:1px solid rgba(255,77,109,0.35);
-
-    animation:pulse 1s infinite;
-}
-
-@keyframes pulse{
-
-    0%{
-        transform:scale(1);
-    }
-
-    50%{
-        transform:scale(1.01);
-    }
-
-    100%{
-        transform:scale(1);
-    }
-}
-
-.chart-card{
-
-    margin-top:18px;
+    font-weight:500;
 }
 
 canvas{
-
     width:100% !important;
-
-    height:280px !important;
+    height:450px !important;
 }
 
-.footer{
+@media(max-width:700px){
 
-    text-align:center;
+    body{
+        padding:15px;
+    }
 
-    margin-top:16px;
+    .header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
 
-    color:#94a3b8;
-
-    font-size:12px;
 }
 
 </style>
 
 </head>
-
 <body>
 
 <div class="container">
 
-    <div class="title">
+    <div class="header">
 
-        <h1>ESP32 SMART DASHBOARD</h1>
+        <h1>Monitoreo Eléctrico</h1>
 
-        <p>Monitoreo y control IoT en tiempo real</p>
+        <div class="status">
 
-    </div>
+            <div class="led" id="led"></div>
 
-    <div class="grid">
-
-        <!-- ADC -->
-        <div class="card">
-
-            <div class="label">
-                ADC ACTUAL
-            </div>
-
-            <div class="value" id="adc_value">
-                0.000V
-            </div>
-
-        </div>
-
-        <!-- THRESHOLD -->
-        <div class="card">
-
-            <div class="label">
-                THRESHOLD
-            </div>
-
-            <div class="value" id="threshold_value">
-                2.5V
-            </div>
-
-            <input
-            type="range"
-            min="0"
-            max="3.3"
-            step="0.1"
-            value="2.5"
-            class="slider"
-            oninput="cambiarThreshold(this.value)">
-
-        </div>
-
-        <!-- PWM -->
-        <div class="card">
-
-            <div class="label">
-                PWM LED
-            </div>
-
-            <div class="value" id="pwm_value">
-                0%
-            </div>
-
-            <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value="0"
-            class="slider"
-            oninput="cambiarPWM(this.value)">
-
-            <div id="led"></div>
-
-        </div>
-
-        <!-- BOTON -->
-        <div class="card">
-
-            <div class="label">
-                BOTON ESP32
-            </div>
-
-            <div id="estado_boton">
-
-                SIN PRESIONAR
-
-            </div>
-
-            <div id="led_boton"></div>
+            <span id="estado">
+                Sistema apagado
+            </span>
 
         </div>
 
     </div>
 
-    <!-- ALERTA -->
-    <div id="alerta" class="alerta normal">
+    <div class="card">
 
-        SISTEMA ESTABLE
+        <div class="top">
 
-    </div>
+            <h2 id="tituloGrafica">
+                Voltaje
+            </h2>
 
-    <!-- GRAFICA -->
-    <div class="card chart-card">
+            <div class="buttons">
+
+                <button 
+                    id="btnVoltaje"
+                    class="active"
+                    onclick="cambiarVariable('voltaje')">
+
+                    Voltaje
+
+                </button>
+
+                <button 
+                    id="btnCorriente"
+                    onclick="cambiarVariable('corriente')">
+
+                    Corriente
+
+                </button>
+
+                <button 
+                    id="btnPotencia"
+                    onclick="cambiarVariable('potencia')">
+
+                    Potencia
+
+                </button>
+
+            </div>
+
+        </div>
 
         <canvas id="grafica"></canvas>
 
-    </div>
+        <div class="value">
 
-    <div class="footer">
+            Valor actual:
+            <span id="valorActual">
+                0
+            </span>
 
-        IoT Dashboard · ESP32 + Flask + Chart.js
+        </div>
 
     </div>
 
@@ -420,263 +205,222 @@ canvas{
 
 <script>
 
-const ctx =
-document.getElementById("grafica");
+let variableActual = "voltaje";
+
+const history = {
+
+    time: [],
+
+    voltaje: [],
+
+    corriente: [],
+
+    potencia: []
+
+};
+
+const ctx = document
+.getElementById("grafica")
+.getContext("2d");
 
 const chart = new Chart(ctx, {
 
-    type:"line",
+    type: "line",
 
-    data:{
+    data: {
 
-        labels:[],
+        labels: [],
 
-        datasets:[
+        datasets: [{
 
-            {
-                label:"ADC",
+            label: "Voltaje",
 
-                data:[],
+            data: [],
 
-                borderColor:"#00f5ff",
+            borderColor: "#2563eb",
 
-                backgroundColor:"rgba(0,245,255,0.15)",
+            backgroundColor: "rgba(37,99,235,0.1)",
 
-                borderWidth:3,
+            borderWidth: 2,
 
-                tension:0.35,
+            tension: 0.3,
 
-                pointRadius:1.5,
+            fill: true
 
-                fill:true
-            },
-
-            {
-                label:"Threshold",
-
-                data:[],
-
-                borderColor:"#feca57",
-
-                borderWidth:2,
-
-                borderDash:[10,5],
-
-                pointRadius:0
-            }
-        ]
+        }]
     },
 
-    options:{
+    options: {
 
         responsive:true,
 
         maintainAspectRatio:false,
 
-        animation:false,
-
         plugins:{
 
             legend:{
-
-                labels:{
-                    color:"white",
-
-                    font:{
-                        size:12
-                    }
-                }
+                display:true
             }
+
         },
 
         scales:{
 
             x:{
-
-                ticks:{
-                    color:"#cbd5e1",
-
-                    font:{
-                        size:10
-                    }
-                },
-
                 grid:{
-                    color:"rgba(255,255,255,0.05)"
+                    color:"#eee"
                 }
             },
 
             y:{
-
-                min:0,
-
-                max:3.3,
-
-                ticks:{
-                    color:"#cbd5e1",
-
-                    font:{
-                        size:10
-                    }
-                },
-
                 grid:{
-                    color:"rgba(255,255,255,0.05)"
+                    color:"#eee"
                 }
             }
+
         }
+
     }
+
 });
 
-function cambiarPWM(valor){
+function cambiarVariable(variable){
 
-    document.getElementById("pwm_value")
-    .innerText = valor + "%";
+    variableActual = variable;
 
-    fetch("/pwm",{
+    document
+    .getElementById("tituloGrafica")
+    .innerHTML =
+    variable.charAt(0).toUpperCase() +
+    variable.slice(1);
 
-        method:"POST",
+    document
+    .getElementById("btnVoltaje")
+    .classList.remove("active");
 
-        headers:{
-            "Content-Type":"application/json"
-        },
+    document
+    .getElementById("btnCorriente")
+    .classList.remove("active");
 
-        body:JSON.stringify({
-            pwm:parseInt(valor)
-        })
-    });
+    document
+    .getElementById("btnPotencia")
+    .classList.remove("active");
 
-    const led =
-    document.getElementById("led");
+    if(variable === "voltaje"){
 
-    let glow = valor / 100;
+        document
+        .getElementById("btnVoltaje")
+        .classList.add("active");
 
-    led.style.background =
-    `rgba(255,110,199,${glow})`;
+    }
 
-    led.style.boxShadow =
-    `0 0 ${12 + glow*30}px rgba(255,110,199,${glow})`;
+    if(variable === "corriente"){
+
+        document
+        .getElementById("btnCorriente")
+        .classList.add("active");
+
+    }
+
+    if(variable === "potencia"){
+
+        document
+        .getElementById("btnPotencia")
+        .classList.add("active");
+
+    }
+
+    actualizarGrafica();
+
 }
 
-function cambiarThreshold(valor){
+function actualizarGrafica(){
 
-    document.getElementById("threshold_value")
-    .innerText =
-    Number(valor).toFixed(1) + "V";
+    chart.data.labels = history.time;
 
-    fetch("/threshold",{
+    chart.data.datasets[0].data =
+        history[variableActual];
 
-        method:"POST",
+    chart.data.datasets[0].label =
+        variableActual;
 
-        headers:{
-            "Content-Type":"application/json"
-        },
+    chart.update();
 
-        body:JSON.stringify({
-            threshold:parseFloat(valor)
-        })
-    });
-}
+    const datos = history[variableActual];
 
-function actualizarDashboard(){
+    if(datos.length > 0){
 
-    fetch("/history")
+        const ultimo =
+            datos[datos.length - 1];
 
-    .then(res=>res.json())
+        document
+        .getElementById("valorActual")
+        .innerHTML = ultimo;
 
-    .then(data=>{
+        // ===== LED =====
 
-        chart.data.labels = data.time;
+        if(variableActual === "potencia"){
 
-        chart.data.datasets[0].data =
-        data.adc1;
+            if(ultimo > 0){
 
-        chart.data.datasets[1].data =
-        data.threshold;
+                document
+                .getElementById("led")
+                .style.background = "green";
 
-        chart.update();
+                document
+                .getElementById("estado")
+                .innerHTML =
+                "Sistema operando";
 
-        const n =
-        data.adc1.length;
+            }else{
 
-        if(n===0) return;
+                document
+                .getElementById("led")
+                .style.background = "red";
 
-        const adc =
-        Number(data.adc1[n-1]);
+                document
+                .getElementById("estado")
+                .innerHTML =
+                "Sistema apagado";
 
-        const threshold =
-        Number(data.threshold[n-1]);
+            }
 
-        const boton =
-        Number(data.boton[n-1]);
-
-        document.getElementById("adc_value")
-        .innerText =
-        adc.toFixed(3) + "V";
-
-        const alerta =
-        document.getElementById("alerta");
-
-        if(adc > threshold){
-
-            alerta.innerText =
-            "ADC SUPERA EL THRESHOLD";
-
-            alerta.className =
-            "alerta peligro";
-
-        }else{
-
-            alerta.innerText =
-            "SISTEMA ESTABLE";
-
-            alerta.className =
-            "alerta normal";
         }
 
-        const ledBoton =
-        document.getElementById("led_boton");
+    }
 
-        const estadoBoton =
-        document.getElementById("estado_boton");
-
-        if(boton == 1){
-
-            ledBoton.style.background =
-            "#00ff88";
-
-            ledBoton.style.boxShadow =
-            "0 0 30px #00ff88";
-
-            estadoBoton.innerText =
-            "PRESIONADO";
-
-        }else{
-
-            ledBoton.style.background =
-            "#111";
-
-            ledBoton.style.boxShadow =
-            "0 0 0px transparent";
-
-            estadoBoton.innerText =
-            "SIN PRESIONAR";
-        }
-    })
-
-    .catch(err=>{
-
-        console.error(err);
-
-    });
 }
 
-setInterval(actualizarDashboard,200);
+async function obtenerDatos(){
 
-actualizarDashboard();
+    try{
+
+        const response =
+        await fetch("/history");
+
+        const data =
+        await response.json();
+
+        history.time = data.time;
+        history.voltaje = data.voltaje || [];
+        history.corriente = data.corriente || [];
+        history.potencia = data.potencia || [];
+
+        actualizarGrafica();
+
+    }catch(error){
+
+        console.log(error);
+
+    }
+
+}
+
+setInterval(obtenerDatos, 1000);
+
+obtenerDatos();
 
 </script>
 
 </body>
-
 </html>
