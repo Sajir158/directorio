@@ -4,28 +4,36 @@ import os
 
 app = Flask(__name__)
 
+# =====================================================
+# CONFIG
+# =====================================================
+
 MAX_SAMPLES = 500
 
-# ================= HISTORIAL =================
+# =====================================================
+# HISTORIAL
+# =====================================================
 
 history = {
 
     "time": [],
 
-    "voltaje": [],
-
-    "corriente": []
+    "voltaje": []
 
 }
 
-# ================= PAGINA =================
+# =====================================================
+# PAGINA PRINCIPAL
+# =====================================================
 
 @app.route("/")
 def index():
 
     return render_template("index.html")
 
-# ================= RECIBIR DATOS ESP32 =================
+# =====================================================
+# RECIBIR DATOS ESP32
+# =====================================================
 
 @app.route("/data", methods=["POST"])
 def recibir_data():
@@ -46,12 +54,10 @@ def recibir_data():
 
     try:
 
+        # ===== VOLTAJE =====
+
         voltaje = float(
             data.get("voltaje", 0)
-        )
-
-        corriente = float(
-            data.get("corriente", 0)
         )
 
         # ===== GUARDAR DATOS =====
@@ -64,10 +70,6 @@ def recibir_data():
             voltaje
         )
 
-        history["corriente"].append(
-            corriente
-        )
-
         # ===== LIMITAR HISTORIAL =====
 
         for key in history:
@@ -77,7 +79,6 @@ def recibir_data():
                 history[key].pop(0)
 
         print("Voltaje:", voltaje)
-        print("Corriente:", corriente)
 
         return jsonify({
 
@@ -99,28 +100,18 @@ def recibir_data():
 
         }), 400
 
-# ================= HISTORIAL =================
+# =====================================================
+# HISTORIAL PARA GRAFICA
+# =====================================================
 
 @app.route("/history")
 def history_route():
 
     return jsonify(history)
 
-# ================= STATUS =================
-
-@app.route("/status")
-def status():
-
-    return jsonify({
-
-        "ok": True,
-
-        "samples":
-        len(history["voltaje"])
-
-    })
-
-# ================= DEBUG =================
+# =====================================================
+# DEBUG
+# =====================================================
 
 @app.route("/debug")
 def debug():
@@ -135,14 +126,32 @@ def debug():
         if history["voltaje"]
         else None,
 
-        "last_corriente":
-        history["corriente"][-1]
-        if history["corriente"]
-        else None
+        "history":
+        history
 
     })
 
-# ================= MAIN =================
+# =====================================================
+# STATUS
+# =====================================================
+
+@app.route("/status")
+def status():
+
+    return jsonify({
+
+        "ok": True,
+
+        "mode": "HTTP POST",
+
+        "samples":
+        len(history["voltaje"])
+
+    })
+
+# =====================================================
+# MAIN
+# =====================================================
 
 if __name__ == "__main__":
 
