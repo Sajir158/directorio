@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, render_template, request
+from collections import deque
 import time
 import os
 
@@ -16,13 +17,13 @@ MAX_SAMPLES = 500
 
 history = {
 
-    "time": [],
+    "time": deque(maxlen=MAX_SAMPLES),
 
-    "voltaje": [],
+    "voltaje": deque(maxlen=MAX_SAMPLES),
 
-    "corriente": [],
+    "corriente": deque(maxlen=MAX_SAMPLES),
 
-    "potencia": []
+    "potencia": deque(maxlen=MAX_SAMPLES)
 
 }
 
@@ -58,19 +59,33 @@ def recibir_data():
 
     try:
 
-        # ===== VOLTAJE =====
+        # =================================================
+        # DATOS RECIBIDOS
+        # =================================================
 
         voltaje = float(
             data.get("voltaje", 0)
         )
 
-        corriente = float(
-            data.get("corriente", 0)
+        corriente1 = float(
+            data.get("corriente1", 0)
         )
 
-        potencia = voltaje * corriente
+        corriente2 = float(
+            data.get("corriente2", 0)
+        )
 
-        # ===== GUARDAR DATOS =====
+        corriente_total = float(
+            data.get("corriente_total", 0)
+        )
+
+        potencia = float(
+            data.get("potencia", 0)
+        )
+
+        # =================================================
+        # GUARDAR HISTORIAL
+        # =================================================
 
         history["time"].append(
             time.strftime("%H:%M:%S")
@@ -80,19 +95,33 @@ def recibir_data():
             voltaje
         )
 
-        history["corriente"].append(corriente)
+        history["corriente"].append(
+            corriente_total
+        )
 
-        history["potencia"].append(potencia)
+        history["potencia"].append(
+            potencia
+        )
 
-        # ===== LIMITAR HISTORIAL =====
+        # =================================================
+        # DEBUG SERIAL
+        # =================================================
 
-        for key in history:
-
-            if len(history[key]) > MAX_SAMPLES:
-
-                history[key].pop(0)
+        print("--------------------------------")
 
         print("Voltaje:", voltaje)
+
+        print("Corriente L1:", corriente1)
+
+        print("Corriente L2:", corriente2)
+
+        print("Corriente Total:", corriente_total)
+
+        print("Potencia:", potencia)
+
+        # =================================================
+        # RESPUESTA
+        # =================================================
 
         return jsonify({
 
@@ -115,13 +144,23 @@ def recibir_data():
         }), 400
 
 # =====================================================
-# HISTORIAL PARA GRAFICA
+# HISTORIAL PARA GRAFICAS
 # =====================================================
 
 @app.route("/history")
 def history_route():
 
-    return jsonify(history)
+    return jsonify({
+
+        "time": list(history["time"]),
+
+        "voltaje": list(history["voltaje"]),
+
+        "corriente": list(history["corriente"]),
+
+        "potencia": list(history["potencia"])
+
+    })
 
 # =====================================================
 # DEBUG
@@ -137,11 +176,30 @@ def debug():
 
         "last_voltaje":
         history["voltaje"][-1]
-        if history["voltaje"]
+        if len(history["voltaje"]) > 0
         else None,
 
-        "history":
-        history
+        "last_corriente":
+        history["corriente"][-1]
+        if len(history["corriente"]) > 0
+        else None,
+
+        "last_potencia":
+        history["potencia"][-1]
+        if len(history["potencia"]) > 0
+        else None,
+
+        "history": {
+
+            "time": list(history["time"]),
+
+            "voltaje": list(history["voltaje"]),
+
+            "corriente": list(history["corriente"]),
+
+            "potencia": list(history["potencia"])
+
+        }
 
     })
 
