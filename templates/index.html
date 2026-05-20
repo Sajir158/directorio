@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Monitoreo Eléctrico</title>
+<title>Monitoreo Solar</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -19,63 +19,128 @@
 }
 
 body{
-    background:#f4f6f8;
-    color:#222;
-    padding:30px;
+    background:#f3f6f9;
+    color:#1e293b;
+    padding:25px;
 }
 
+/* =========================================
+CONTENEDOR
+========================================= */
+
 .container{
-    max-width:1100px;
+    max-width:1200px;
     margin:auto;
 }
+
+/* =========================================
+HEADER
+========================================= */
 
 .header{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:30px;
+    margin-bottom:25px;
     flex-wrap:wrap;
     gap:20px;
 }
 
 .header h1{
-    font-size:32px;
+    font-size:30px;
     font-weight:600;
 }
 
+.subtitle{
+    color:#64748b;
+    margin-top:5px;
+    font-size:14px;
+}
+
+/* =========================================
+ESTADO
+========================================= */
+
 .status{
+    background:white;
+    border:1px solid #dbe2ea;
+    border-radius:12px;
+    padding:12px 18px;
     display:flex;
     align-items:center;
-    gap:12px;
-    background:white;
-    padding:12px 18px;
-    border-radius:10px;
-    border:1px solid #ddd;
+    gap:10px;
 }
 
 .led{
-    width:16px;
-    height:16px;
+    width:14px;
+    height:14px;
     border-radius:50%;
-    background:red;
+    background:#dc2626;
     transition:0.3s;
 }
 
-.card{
-    background:white;
-    border-radius:12px;
-    padding:25px;
-    border:1px solid #ddd;
+/* =========================================
+CARDS
+========================================= */
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:25px;
 }
 
-.top{
+.cardInfo{
+    background:white;
+    border-radius:14px;
+    border:1px solid #dbe2ea;
+    padding:22px;
+}
+
+.cardTitle{
+    color:#64748b;
+    font-size:14px;
+    margin-bottom:12px;
+}
+
+.cardValue{
+    font-size:34px;
+    font-weight:600;
+}
+
+.unit{
+    font-size:18px;
+    color:#64748b;
+}
+
+/* =========================================
+GRAFICA
+========================================= */
+
+.chartCard{
+    background:white;
+    border-radius:16px;
+    border:1px solid #dbe2ea;
+    padding:25px;
+}
+
+.chartTop{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:25px;
+    margin-bottom:20px;
     flex-wrap:wrap;
     gap:15px;
 }
+
+.chartTop h2{
+    font-size:24px;
+    font-weight:600;
+}
+
+/* =========================================
+BOTONES
+========================================= */
 
 .buttons{
     display:flex;
@@ -85,34 +150,51 @@ body{
 
 .buttons button{
     border:none;
-    background:#e5e7eb;
-    color:#222;
+    background:#e2e8f0;
+    color:#1e293b;
     padding:10px 18px;
     border-radius:8px;
     cursor:pointer;
-    font-size:15px;
     transition:0.2s;
+    font-size:14px;
 }
 
 .buttons button:hover{
-    background:#d1d5db;
+    background:#cbd5e1;
 }
 
 .buttons .active{
-    background:#2563eb;
+    background:#f59e0b;
     color:white;
 }
 
-.value{
+/* =========================================
+VALOR ACTUAL
+========================================= */
+
+.currentValue{
     margin-top:20px;
-    font-size:18px;
-    font-weight:500;
+    font-size:17px;
+    color:#475569;
 }
+
+#valorActual{
+    font-weight:600;
+    color:#0f172a;
+}
+
+/* =========================================
+CANVAS
+========================================= */
 
 canvas{
     width:100% !important;
-    height:450px !important;
+    height:430px !important;
 }
+
+/* =========================================
+RESPONSIVE
+========================================= */
 
 @media(max-width:700px){
 
@@ -125,18 +207,42 @@ canvas{
         align-items:flex-start;
     }
 
+    .chartTop{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .buttons{
+        width:100%;
+    }
+
+    .buttons button{
+        flex:1;
+    }
+
 }
 
 </style>
 
 </head>
+
 <body>
 
 <div class="container">
 
+    <!-- HEADER -->
+
     <div class="header">
 
-        <h1>Monitoreo Eléctrico</h1>
+        <div>
+
+            <h1>Monitoreo Solar</h1>
+
+            <div class="subtitle">
+                Supervisión del sistema fotovoltaico
+            </div>
+
+        </div>
 
         <div class="status">
 
@@ -150,9 +256,77 @@ canvas{
 
     </div>
 
-    <div class="card">
+    <!-- CARDS -->
 
-        <div class="top">
+    <div class="grid">
+
+        <div class="cardInfo">
+
+            <div class="cardTitle">
+                Voltaje
+            </div>
+
+            <div class="cardValue">
+
+                <span id="voltajeCard">
+                    0
+                </span>
+
+                <span class="unit">
+                    V
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="cardInfo">
+
+            <div class="cardTitle">
+                Corriente
+            </div>
+
+            <div class="cardValue">
+
+                <span id="corrienteCard">
+                    0
+                </span>
+
+                <span class="unit">
+                    A
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="cardInfo">
+
+            <div class="cardTitle">
+                Potencia
+            </div>
+
+            <div class="cardValue">
+
+                <span id="potenciaCard">
+                    0
+                </span>
+
+                <span class="unit">
+                    W
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- GRAFICA -->
+
+    <div class="chartCard">
+
+        <div class="chartTop">
 
             <h2 id="tituloGrafica">
                 Voltaje
@@ -191,7 +365,7 @@ canvas{
 
         <canvas id="grafica"></canvas>
 
-        <div class="value">
+        <div class="currentValue">
 
             Valor actual:
             <span id="valorActual">
@@ -211,14 +385,13 @@ let variableActual = "voltaje";
 const history = {
 
     time: [],
-
     voltaje: [],
-
     corriente: [],
-
     potencia: []
 
 };
+
+const MAX_PUNTOS = 60;
 
 const ctx = document
 .getElementById("grafica")
@@ -238,15 +411,17 @@ const chart = new Chart(ctx, {
 
             data: [],
 
-            borderColor: "#2563eb",
+            borderColor: "#f59e0b",
 
-            backgroundColor: "rgba(37,99,235,0.1)",
+            backgroundColor: "rgba(245,158,11,0.12)",
 
             borderWidth: 2,
 
-            tension: 0.3,
+            tension:0.25,
 
-            fill: true
+            fill:true,
+
+            pointRadius:2
 
         }]
     },
@@ -270,15 +445,21 @@ const chart = new Chart(ctx, {
         scales:{
 
             x:{
+
                 grid:{
-                    color:"#eee"
+                    color:"#eef2f7"
                 }
+
             },
 
             y:{
+
+                beginAtZero:true,
+
                 grid:{
-                    color:"#eee"
+                    color:"#eef2f7"
                 }
+
             }
 
         }
@@ -316,11 +497,10 @@ function cambiarVariable(variable){
         .classList.add("active");
 
         chart.data.datasets[0].borderColor =
-        "#2563eb";
+        "#f59e0b";
 
         chart.data.datasets[0].backgroundColor =
-        "rgba(37,99,235,0.1)";
-
+        "rgba(245,158,11,0.12)";
     }
 
     if(variable === "corriente"){
@@ -333,8 +513,7 @@ function cambiarVariable(variable){
         "#16a34a";
 
         chart.data.datasets[0].backgroundColor =
-        "rgba(22,163,74,0.1)";
-
+        "rgba(22,163,74,0.12)";
     }
 
     if(variable === "potencia"){
@@ -344,11 +523,10 @@ function cambiarVariable(variable){
         .classList.add("active");
 
         chart.data.datasets[0].borderColor =
-        "#dc2626";
+        "#2563eb";
 
         chart.data.datasets[0].backgroundColor =
-        "rgba(220,38,38,0.1)";
-
+        "rgba(37,99,235,0.12)";
     }
 
     actualizarGrafica();
@@ -367,48 +545,66 @@ function actualizarGrafica(){
 
     chart.update();
 
-    const datos = history[variableActual];
+    const voltaje =
+    history.voltaje[
+        history.voltaje.length - 1
+    ] || 0;
 
-    if(datos.length > 0){
+    const corriente =
+    history.corriente[
+        history.corriente.length - 1
+    ] || 0;
 
-        const ultimo =
-        datos[datos.length - 1];
-
-        let unidad = "";
-
-        if(variableActual === "voltaje"){
-            unidad = " V";
-        }
-
-        if(variableActual === "corriente"){
-            unidad = " A";
-        }
-
-        if(variableActual === "potencia"){
-            unidad = " W";
-        }
-
-        document
-        .getElementById("valorActual")
-        .innerHTML =
-        ultimo.toFixed(2) + unidad;
-
-    }
-
-    // =================================================
-    // LED
-    // =================================================
-
-    const potenciaActual =
+    const potencia =
     history.potencia[
         history.potencia.length - 1
     ] || 0;
 
-    if(potenciaActual > 0){
+    document
+    .getElementById("voltajeCard")
+    .innerHTML =
+    voltaje.toFixed(1);
+
+    document
+    .getElementById("corrienteCard")
+    .innerHTML =
+    corriente.toFixed(2);
+
+    document
+    .getElementById("potenciaCard")
+    .innerHTML =
+    potencia.toFixed(1);
+
+    let unidad = "";
+
+    if(variableActual === "voltaje"){
+        unidad = " V";
+    }
+
+    if(variableActual === "corriente"){
+        unidad = " A";
+    }
+
+    if(variableActual === "potencia"){
+        unidad = " W";
+    }
+
+    const actual =
+    history[variableActual][
+        history[variableActual].length - 1
+    ] || 0;
+
+    document
+    .getElementById("valorActual")
+    .innerHTML =
+    actual.toFixed(2) + unidad;
+
+    if(potencia > 0){
 
         document
         .getElementById("led")
-        .style.background = "green";
+        .style.background =
+        "#16a34a";
 
         document
         .getElementById("estado")
@@ -419,7 +615,8 @@ function actualizarGrafica(){
 
         document
         .getElementById("led")
-        .style.background = "red";
+        .style.background =
+        "#dc2626";
 
         document
         .getElementById("estado")
@@ -444,13 +641,17 @@ async function obtenerDatos(){
         const data =
         await response.json();
 
-        history.time = data.time || [];
+        history.time =
+        (data.time || []).slice(-MAX_PUNTOS);
 
-        history.voltaje = data.voltaje || [];
+        history.voltaje =
+        (data.voltaje || []).slice(-MAX_PUNTOS);
 
-        history.corriente = data.corriente || [];
+        history.corriente =
+        (data.corriente || []).slice(-MAX_PUNTOS);
 
-        history.potencia = data.potencia || [];
+        history.potencia =
+        (data.potencia || []).slice(-MAX_PUNTOS);
 
         actualizarGrafica();
 
@@ -462,7 +663,7 @@ async function obtenerDatos(){
 
 }
 
-setInterval(obtenerDatos, 1000);
+setInterval(obtenerDatos,60000);
 
 obtenerDatos();
 
