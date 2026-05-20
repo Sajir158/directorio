@@ -58,6 +58,7 @@ body{
     height:16px;
     border-radius:50%;
     background:red;
+    transition:0.3s;
 }
 
 .card{
@@ -159,7 +160,7 @@ canvas{
 
             <div class="buttons">
 
-                <button 
+                <button
                     id="btnVoltaje"
                     class="active"
                     onclick="cambiarVariable('voltaje')">
@@ -168,7 +169,7 @@ canvas{
 
                 </button>
 
-                <button 
+                <button
                     id="btnCorriente"
                     onclick="cambiarVariable('corriente')">
 
@@ -176,7 +177,7 @@ canvas{
 
                 </button>
 
-                <button 
+                <button
                     id="btnPotencia"
                     onclick="cambiarVariable('potencia')">
 
@@ -256,6 +257,8 @@ const chart = new Chart(ctx, {
 
         maintainAspectRatio:false,
 
+        animation:false,
+
         plugins:{
 
             legend:{
@@ -312,6 +315,12 @@ function cambiarVariable(variable){
         .getElementById("btnVoltaje")
         .classList.add("active");
 
+        chart.data.datasets[0].borderColor =
+        "#2563eb";
+
+        chart.data.datasets[0].backgroundColor =
+        "rgba(37,99,235,0.1)";
+
     }
 
     if(variable === "corriente"){
@@ -320,6 +329,12 @@ function cambiarVariable(variable){
         .getElementById("btnCorriente")
         .classList.add("active");
 
+        chart.data.datasets[0].borderColor =
+        "#16a34a";
+
+        chart.data.datasets[0].backgroundColor =
+        "rgba(22,163,74,0.1)";
+
     }
 
     if(variable === "potencia"){
@@ -327,6 +342,12 @@ function cambiarVariable(variable){
         document
         .getElementById("btnPotencia")
         .classList.add("active");
+
+        chart.data.datasets[0].borderColor =
+        "#dc2626";
+
+        chart.data.datasets[0].backgroundColor =
+        "rgba(220,38,38,0.1)";
 
     }
 
@@ -339,10 +360,10 @@ function actualizarGrafica(){
     chart.data.labels = history.time;
 
     chart.data.datasets[0].data =
-        history[variableActual];
+    history[variableActual];
 
     chart.data.datasets[0].label =
-        variableActual;
+    variableActual;
 
     chart.update();
 
@@ -351,41 +372,59 @@ function actualizarGrafica(){
     if(datos.length > 0){
 
         const ultimo =
-            datos[datos.length - 1];
+        datos[datos.length - 1];
+
+        let unidad = "";
+
+        if(variableActual === "voltaje"){
+            unidad = " V";
+        }
+
+        if(variableActual === "corriente"){
+            unidad = " A";
+        }
+
+        if(variableActual === "potencia"){
+            unidad = " W";
+        }
 
         document
         .getElementById("valorActual")
-        .innerHTML = ultimo;
+        .innerHTML =
+        ultimo.toFixed(2) + unidad;
 
-        // ===== LED =====
+    }
 
-        if(variableActual === "potencia"){
+    // =================================================
+    // LED
+    // =================================================
 
-            if(ultimo > 0){
+    const potenciaActual =
+    history.potencia[
+        history.potencia.length - 1
+    ] || 0;
 
-                document
-                .getElementById("led")
-                .style.background = "green";
+    if(potenciaActual > 0){
 
-                document
-                .getElementById("estado")
-                .innerHTML =
-                "Sistema operando";
+        document
+        .getElementById("led")
+        .style.background = "green";
 
-            }else{
+        document
+        .getElementById("estado")
+        .innerHTML =
+        "Sistema operando";
 
-                document
-                .getElementById("led")
-                .style.background = "red";
+    }else{
 
-                document
-                .getElementById("estado")
-                .innerHTML =
-                "Sistema apagado";
+        document
+        .getElementById("led")
+        .style.background = "red";
 
-            }
-
-        }
+        document
+        .getElementById("estado")
+        .innerHTML =
+        "Sistema apagado";
 
     }
 
@@ -398,12 +437,19 @@ async function obtenerDatos(){
         const response =
         await fetch("/history");
 
+        if(!response.ok){
+            return;
+        }
+
         const data =
         await response.json();
 
-        history.time = data.time;
+        history.time = data.time || [];
+
         history.voltaje = data.voltaje || [];
+
         history.corriente = data.corriente || [];
+
         history.potencia = data.potencia || [];
 
         actualizarGrafica();
