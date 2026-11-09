@@ -545,12 +545,12 @@ mqttClient.on("connect", function() {
 // ============================================================
 
 
+
 mqttClient.on("message", function(topic, message) {
 
     const valor = parseFloat(message.toString());
 
     if (!Number.isFinite(valor)) {
-        console.log("Dato MQTT no valido:", message.toString());
         return;
     }
 
@@ -566,25 +566,23 @@ mqttClient.on("message", function(topic, message) {
         return;
     }
 
-    // Registrar la hora de la medicion
     const hora = new Date().toLocaleTimeString("es-MX", {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit"
     });
 
-    // Crear un nuevo punto cuando llega el voltaje
+    // El ESP32 envia primero voltaje,
+    // despues corriente y finalmente potencia.
     if (variable === "voltaje") {
 
         history.time.push(hora);
-
         history.voltaje.push(valor);
         history.corriente.push(null);
         history.potencia.push(null);
 
     } else {
 
-        // Si no existe ningun punto, crear uno
         if (history.time.length === 0) {
             history.time.push(hora);
             history.voltaje.push(null);
@@ -592,14 +590,11 @@ mqttClient.on("message", function(topic, message) {
             history.potencia.push(null);
         }
 
-        // Actualizar el ultimo punto
         const ultimo = history.time.length - 1;
         history[variable][ultimo] = valor;
     }
 
-    // Conservar solamente las ultimas 60 mediciones
     while (history.time.length > MAX_PUNTOS) {
-
         history.time.shift();
         history.voltaje.shift();
         history.corriente.shift();
@@ -607,14 +602,8 @@ mqttClient.on("message", function(topic, message) {
     }
 
     actualizarGrafica();
-
-    console.log(
-        "Dato recibido:",
-        variable,
-        valor,
-        hora
-    );
 });
+
 
 
 // ============================================================
