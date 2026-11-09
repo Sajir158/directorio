@@ -1,242 +1,473 @@
-from flask import Flask, jsonify, render_template, request
-from collections import deque
+
+from machine import Pin, ADC
+import network
 import time
-import os
+import math
+import gc
+from umqtt.simple import MQTTClient
 
-app = Flask(__name__)
+# ==========================================
+# 1. CONFIGURACION WIFI
+# ==========================================
 
-# =====================================================
-# CONFIG
-# =====================================================
+WIFI_SSID = "Totalplay-129F"
+WIFI_PASSWORD = "129F849B2XRF7BVM"
 
-MAX_SAMPLES = 500
+# ==========================================
+# 2. CONFIGURACION MQTT
+# ==========================================
 
-# =====================================================
-# HISTORIAL
-# =====================================================
+MQTT_BROKER = "broker.hivemq.com"
+MQTT_PORT = 1883
 
-history = {
+MQTT_CLIENT_ID = (
+    "ESP32S3_FOTOVOLTAICO_"
+    + str(time.ticks_ms())
+)
 
-    "time": deque(maxlen=MAX_SAMPLES),
+TOPIC_VOLTAGE = b"fotovoltaico/voltaje"
+TOPIC_CURRENT = b"fotovoltaico/corriente"
+TOPIC_POWER = b"fotovoltaico/potencia"
 
-    "voltaje": deque(maxlen=MAX_SAMPLES),
+# Intervalo de publicacion: 60 segundos
+INTERVALO_PUBLICACION = 60
 
-    "corriente": deque(maxlen=MAX_SAMPLES),
+# ==========================================
+# 3. CONFIGURACION ADC
+# ==========================================
 
-    "potencia": deque(maxlen=MAX_SAMPLES)
+ADC_MAX = 4095
+VREF = 3.3
 
-}
+PIN_V_F1 = 4
+PIN_V_F2 = 5
+PIN_I_F1 = 6
+PIN_I_F2 = 8
 
-# =====================================================
-# PAGINA PRINCIPAL
-# =====================================================
+adc_v_f1 = ADC(Pin(PIN_V_F1))
+adc_v_f2 = ADC(Pin(PIN_V_F2))
+adc_i_f1 = ADC(Pin(PIN_I_F1))
+adc_i_f2 = ADC(Pin(PIN_I_F2))
 
-@app.route("/")
-def index():
+canales = [
+    adc_v_f1,
+    adc_v_f2,
+    adc_i_f1,
+    adc_i_f2
+]
 
-    return render_template("index.html")
+for adc in canales:
+    adc.atten(ADC.ATTN_11DB)
+    adc.width(ADC.WIDTH_12BIT)
 
-# =====================================================
-# RECIBIR DATOS ESP32
-# =====================================================
+# ==========================================
+# 4. COEFICIENTES DE CALIBRACION
+# ==========================================
 
-@app.route("/data", methods=["POST"])
-def recibir_data():
+# Voltaje fase 1
+CAL_GAIN_V_F1 = 373.2719
+CAL_OFFSET_V_F1 = 0.6142
 
-    global history
+# Voltaje fase 2
+CAL_GAIN_V_F2 = 323.2601
+CAL_OFFSET_V_F2 = 0.7617
 
-    data = request.get_json()
+# Corriente fase 1
+CAL_GAIN_I_F1 = 0.3438
+CAL_OFFSET_I_F1 = 0.0023
 
-    if not data:
+# Corriente fase 2
+CAL_GAIN_I_F2 = 0.3473
+CAL_OFFSET_I_F2 = 0.0024
 
-        return jsonify({
+# Transformadores Fronius ECS24250
+# Relacion: 250 A / 333 mV
 
-            "ok": False,
+CT_FACTOR = 250.0 / 0.333
 
-            "error": "No JSON recibido"
+# Umbral de corriente
+UMBRAL_CORRIENTE = 10.0
 
-        }), 400
+# ==========================================
+# 5. CONFIGURACION DE MUESTREO
+# ==========================================
+
+NUM_MUESTRAS = 1000
+
+# ==========================================
+# 6. VARIABLES DE COMUNICACION
+# ==========================================
+
+wlan = network.WLAN(network.STA_IF)
+mqtt_client = None
+
+# ==========================================
+# 7. FUNCION DE MEDICION RMS
+# ==========================================
+
+def medir_rms(adc):
+
+    suma = 0.0
+    suma_cuadrados = 0.0
+
+    for i in range(NUM_MUESTRAS):
+
+        lectura = adc.read()
+
+        voltaje_adc = (
+            lectura * VREF / ADC_MAX
+        )
+
+        suma += voltaje_adc
+        suma_cuadrados += voltaje_adc ** 2
+
+        # Aproximadamente 83 us entre muestras
+        time.sleep_us(83)
+
+    promedio = suma / NUM_MUESTRAS
+
+    promedio_cuadrados = (
+        suma_cuadrados / NUM_MUESTRAS
+    )
+
+    varianza = (
+        promedio_cuadrados - promedio ** 2
+    )
+
+    if varianza < 0:
+        varianza = 0
+
+    rms = math.sqrt(varianza)
+
+    return rms
+
+# ==========================================
+# 8. MEDICION DE VARIABLES ELECTRICAS
+# ==========================================
+
+def medir_variables():
+
+    # Adquisicion de los cuatro canales
+    rms_v_f1 = medir_rms(adc_v_f1)
+    rms_v_f2 = medir_rms(adc_v_f2)
+
+    rms_i_f1 = medir_rms(adc_i_f1)
+    rms_i_f2 = medir_rms(adc_i_f2)
+
+    # Calibracion de voltaje
+    voltaje_f1 = (
+        CAL_GAIN_V_F1 * rms_v_f1
+        + CAL_OFFSET_V_F1
+    )
+
+    voltaje_f2 = (
+        CAL_GAIN_V_F2 * rms_v_f2
+        + CAL_OFFSET_V_F2
+    )
+
+    # Calibracion de corriente
+    corriente_f1 = (
+        CAL_GAIN_I_F1 * rms_i_f1
+        + CAL_OFFSET_I_F1
+    ) * CT_FACTOR
+
+    corriente_f2 = (
+        CAL_GAIN_I_F2 * rms_i_f2
+        + CAL_OFFSET_I_F2
+    ) * CT_FACTOR
+
+    # Evitar valores negativos
+    voltaje_f1 = max(0.0, voltaje_f1)
+    voltaje_f2 = max(0.0, voltaje_f2)
+
+    corriente_f1 = max(0.0, corriente_f1)
+    corriente_f2 = max(0.0, corriente_f2)
+
+    # Descartar corrientes menores a 10 A
+    if corriente_f1 < UMBRAL_CORRIENTE:
+        corriente_f1 = 0.0
+
+    if corriente_f2 < UMBRAL_CORRIENTE:
+        corriente_f2 = 0.0
+
+    # Voltaje entre fases
+    # Valido bajo el supuesto de 180 grados
+    voltaje_total = voltaje_f1 + voltaje_f2
+
+    # Corriente promedio
+    corriente_promedio = (
+        corriente_f1 + corriente_f2
+    ) / 2.0
+
+    # Potencia estimada
+    potencia_estimada = (
+        voltaje_total * corriente_promedio
+    )
+
+    return {
+        "voltaje_f1": voltaje_f1,
+        "voltaje_f2": voltaje_f2,
+        "corriente_f1": corriente_f1,
+        "corriente_f2": corriente_f2,
+        "voltaje_total": voltaje_total,
+        "corriente_promedio": corriente_promedio,
+        "potencia_estimada": potencia_estimada
+    }
+
+# ==========================================
+# 9. CONEXION WIFI
+# ==========================================
+
+def conectar_wifi():
+
+    wlan.active(True)
+
+    if wlan.isconnected():
+        return True
+
+    print("Conectando a Wi-Fi...")
+
+    wlan.connect(
+        WIFI_SSID,
+        WIFI_PASSWORD
+    )
+
+    inicio = time.ticks_ms()
+
+    while not wlan.isconnected():
+
+        if time.ticks_diff(
+            time.ticks_ms(), inicio
+        ) > 15000:
+
+            print("Error de conexion Wi-Fi")
+            return False
+
+        time.sleep_ms(500)
+
+    print("Wi-Fi conectado")
+    print("IP:", wlan.ifconfig()[0])
+
+    return True
+
+# ==========================================
+# 10. CONEXION MQTT
+# ==========================================
+
+def conectar_mqtt():
+
+    global mqtt_client
+
+    print("Conectando al broker MQTT...")
 
     try:
 
-        # =================================================
-        # DATOS RECIBIDOS
-        # =================================================
+        if mqtt_client is not None:
+            try:
+                mqtt_client.disconnect()
+            except Exception:
+                pass
 
-        voltaje = float(
-            data.get("voltaje", 0)
+        mqtt_client = MQTTClient(
+            client_id=MQTT_CLIENT_ID,
+            server=MQTT_BROKER,
+            port=MQTT_PORT,
+            keepalive=120
         )
 
-        corriente1 = float(
-            data.get("corriente1", 0)
+        mqtt_client.connect()
+
+        print("MQTT conectado correctamente")
+
+        return True
+
+    except Exception as error:
+
+        print("Error MQTT:", error)
+
+        mqtt_client = None
+
+        return False
+
+# ==========================================
+# 11. MOSTRAR MEDICIONES
+# ==========================================
+
+def mostrar_variables(datos):
+
+    print()
+    print("========== SISTEMA INTEGRADO ==========")
+
+    print(
+        "Voltaje Fase 1: {:.2f} V".format(
+            datos["voltaje_f1"]
+        )
+    )
+
+    print(
+        "Voltaje Fase 2: {:.2f} V".format(
+            datos["voltaje_f2"]
+        )
+    )
+
+    print(
+        "Corriente Fase 1: {:.2f} A".format(
+            datos["corriente_f1"]
+        )
+    )
+
+    print(
+        "Corriente Fase 2: {:.2f} A".format(
+            datos["corriente_f2"]
+        )
+    )
+
+    print("---------------------------------------")
+
+    print(
+        "Voltaje total: {:.2f} V".format(
+            datos["voltaje_total"]
+        )
+    )
+
+    print(
+        "Corriente promedio: {:.2f} A".format(
+            datos["corriente_promedio"]
+        )
+    )
+
+    print(
+        "Potencia estimada: {:.2f} W".format(
+            datos["potencia_estimada"]
+        )
+    )
+
+    print("=======================================")
+
+# ==========================================
+# 12. PUBLICACION MQTT
+# ==========================================
+
+def publicar_mqtt(datos):
+
+    global mqtt_client
+
+    if mqtt_client is None:
+        return False
+
+    try:
+
+        voltaje = "{:.2f}".format(
+            datos["voltaje_total"]
         )
 
-        corriente2 = float(
-            data.get("corriente2", 0)
+        corriente = "{:.2f}".format(
+            datos["corriente_promedio"]
         )
 
-        corriente_total = float(
-            data.get("corriente_total", 0)
+        potencia = "{:.2f}".format(
+            datos["potencia_estimada"]
         )
 
-        potencia = float(
-            data.get("potencia", 0)
+        mqtt_client.publish(
+            TOPIC_VOLTAGE,
+            voltaje.encode(),
+            qos=1
         )
 
-        # =================================================
-        # GUARDAR HISTORIAL
-        # =================================================
-
-        history["time"].append(
-            time.strftime("%H:%M:%S")
+        mqtt_client.publish(
+            TOPIC_CURRENT,
+            corriente.encode(),
+            qos=1
         )
 
-        history["voltaje"].append(
-            voltaje
+        mqtt_client.publish(
+            TOPIC_POWER,
+            potencia.encode(),
+            qos=1
         )
 
-        history["corriente"].append(
-            corriente_total
-        )
+        print()
+        print("Datos publicados por MQTT")
+        print("Voltaje:", voltaje, "V")
+        print("Corriente:", corriente, "A")
+        print("Potencia:", potencia, "W")
 
-        history["potencia"].append(
-            potencia
-        )
+        return True
 
-        # =================================================
-        # DEBUG SERIAL
-        # =================================================
+    except Exception as error:
 
-        print("--------------------------------")
+        print("Error al publicar MQTT:", error)
 
-        print("Voltaje:", voltaje)
+        mqtt_client = None
 
-        print("Corriente L1:", corriente1)
+        return False
 
-        print("Corriente L2:", corriente2)
+# ==========================================
+# 13. PROGRAMA PRINCIPAL
+# ==========================================
 
-        print("Corriente Total:", corriente_total)
+def main():
 
-        print("Potencia:", potencia)
+    global mqtt_client
 
-        # =================================================
-        # RESPUESTA
-        # =================================================
+    print()
+    print("=======================================")
+    print(" MONITOREO FOTOVOLTAICO RESIDENCIAL")
+    print(" ESP32-S3 - SISTEMA INTEGRADO")
+    print("=======================================")
 
-        return jsonify({
+    print("Inicializando sensores...")
+    time.sleep(2)
 
-            "ok": True,
+    # Intentar conexion inicial
+    if conectar_wifi():
+        conectar_mqtt()
 
-            "samples": len(
-                history["voltaje"]
-            )
+    while True:
 
-        })
+        try:
 
-    except Exception as e:
+            # Medir las variables reales
+            datos = medir_variables()
 
-        return jsonify({
+            # Mostrar resultados en Thonny
+            mostrar_variables(datos)
 
-            "ok": False,
+            # Verificar conexion Wi-Fi
+            if not wlan.isconnected():
 
-            "error": str(e)
+                print("Wi-Fi desconectado")
 
-        }), 400
+                mqtt_client = None
 
-# =====================================================
-# HISTORIAL PARA GRAFICAS
-# =====================================================
+                conectar_wifi()
 
-@app.route("/history")
-def history_route():
+            # Reconectar MQTT si es necesario
+            if wlan.isconnected():
 
-    return jsonify({
+                if mqtt_client is None:
+                    conectar_mqtt()
 
-        "time": list(history["time"]),
+                if mqtt_client is not None:
+                    publicar_mqtt(datos)
 
-        "voltaje": list(history["voltaje"]),
+            gc.collect()
 
-        "corriente": list(history["corriente"]),
+        except Exception as error:
 
-        "potencia": list(history["potencia"])
+            print("Error del sistema:", error)
 
-    })
+            mqtt_client = None
 
-# =====================================================
-# DEBUG
-# =====================================================
+        # Esperar hasta la siguiente medicion
+        time.sleep(INTERVALO_PUBLICACION)
 
-@app.route("/debug")
-def debug():
 
-    return jsonify({
-
-        "samples":
-        len(history["voltaje"]),
-
-        "last_voltaje":
-        history["voltaje"][-1]
-        if len(history["voltaje"]) > 0
-        else None,
-
-        "last_corriente":
-        history["corriente"][-1]
-        if len(history["corriente"]) > 0
-        else None,
-
-        "last_potencia":
-        history["potencia"][-1]
-        if len(history["potencia"]) > 0
-        else None,
-
-        "history": {
-
-            "time": list(history["time"]),
-
-            "voltaje": list(history["voltaje"]),
-
-            "corriente": list(history["corriente"]),
-
-            "potencia": list(history["potencia"])
-
-        }
-
-    })
-
-# =====================================================
-# STATUS
-# =====================================================
-
-@app.route("/status")
-def status():
-
-    return jsonify({
-
-        "ok": True,
-
-        "mode": "HTTP POST",
-
-        "samples":
-        len(history["voltaje"])
-
-    })
-
-# =====================================================
-# MAIN
-# =====================================================
+# ==========================================
+# 14. EJECUCION AUTOMATICA
+# ==========================================
 
 if __name__ == "__main__":
+    main()
 
-    port = int(
-        os.environ.get("PORT", 5050)
-    )
-
-    app.run(
-
-        host="0.0.0.0",
-
-        port=port,
-
-        debug=False
-
-    )
