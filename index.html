@@ -544,34 +544,78 @@ mqttClient.on("connect", function() {
 // MENSAJES MQTT
 // ============================================================
 
+
 mqttClient.on("message", function(topic, message) {
+
     const valor = parseFloat(message.toString());
 
-    if (isNaN(valor)) {
-        console.log("Dato MQTT no válido:", message.toString());
+    if (!Number.isFinite(valor)) {
+        console.log("Dato MQTT no valido:", message.toString());
         return;
     }
 
+    let variable;
+
     if (topic === TOPIC_VOLTAJE) {
-        history.voltaje.push(valor);
+        variable = "voltaje";
+    } else if (topic === TOPIC_CORRIENTE) {
+        variable = "corriente";
+    } else if (topic === TOPIC_POTENCIA) {
+        variable = "potencia";
+    } else {
+        return;
     }
 
-    if (topic === TOPIC_CORRIENTE) {
-        history.corriente.push(valor);
-    }
-
-    if (topic === TOPIC_POTENCIA) {
-        history.potencia.push(valor);
-    }
-
-    ["voltaje", "corriente", "potencia"].forEach(variable => {
-        if (history[variable].length > MAX_PUNTOS) {
-            history[variable].shift();
-        }
+    // Registrar la hora de la medicion
+    const hora = new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
     });
 
+    // Crear un nuevo punto cuando llega el voltaje
+    if (variable === "voltaje") {
+
+        history.time.push(hora);
+
+        history.voltaje.push(valor);
+        history.corriente.push(null);
+        history.potencia.push(null);
+
+    } else {
+
+        // Si no existe ningun punto, crear uno
+        if (history.time.length === 0) {
+            history.time.push(hora);
+            history.voltaje.push(null);
+            history.corriente.push(null);
+            history.potencia.push(null);
+        }
+
+        // Actualizar el ultimo punto
+        const ultimo = history.time.length - 1;
+        history[variable][ultimo] = valor;
+    }
+
+    // Conservar solamente las ultimas 60 mediciones
+    while (history.time.length > MAX_PUNTOS) {
+
+        history.time.shift();
+        history.voltaje.shift();
+        history.corriente.shift();
+        history.potencia.shift();
+    }
+
     actualizarGrafica();
+
+    console.log(
+        "Dato recibido:",
+        variable,
+        valor,
+        hora
+    );
 });
+
 
 // ============================================================
 // ERRORES Y DESCONEXIÓN
