@@ -1,377 +1,299 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Monitoreo Solar</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
 <style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial, Helvetica, sans-serif;
+:root {
+    --vino: #390713;
+    --carmesi: #870D2C;
+    --frambuesa: #E52860;
+    --rosa: #F4A5BA;
+    --rosa-claro: #FFF0F3;
+    --texto: #390713;
+    --borde: #F0C4D0;
 }
 
-body{
-    background:#f3f6f9;
-    color:#1e293b;
-    padding:25px;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
-/* =========================================
-CONTENEDOR
-========================================= */
-
-.container{
-    max-width:1200px;
-    margin:auto;
+body {
+    background: linear-gradient(135deg, #FFF0F3, #F8DDE5);
+    color: var(--texto);
+    padding: 25px;
+    min-height: 100vh;
 }
 
-/* =========================================
-HEADER
-========================================= */
-
-.header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:25px;
-    flex-wrap:wrap;
-    gap:20px;
+.container {
+    max-width: 1200px;
+    margin: auto;
 }
 
-.header h1{
-    font-size:30px;
-    font-weight:600;
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 28px;
+    border-radius: 18px;
+    background: linear-gradient(
+        120deg,
+        var(--vino),
+        var(--carmesi),
+        #B71646
+    );
+    color: white;
+    box-shadow: 0 8px 24px rgba(57, 7, 19, 0.18);
 }
 
-.subtitle{
-    color:#64748b;
-    margin-top:5px;
-    font-size:14px;
+.header h1 {
+    font-size: 30px;
+    font-weight: 700;
 }
 
-/* =========================================
-ESTADO
-========================================= */
-
-.status{
-    background:white;
-    border:1px solid #dbe2ea;
-    border-radius:12px;
-    padding:12px 18px;
-    display:flex;
-    align-items:center;
-    gap:10px;
+.subtitle {
+    color: #FFD7E2;
+    margin-top: 6px;
+    font-size: 14px;
 }
 
-.led{
-    width:14px;
-    height:14px;
-    border-radius:50%;
-    background:#dc2626;
-    transition:0.3s;
+.status {
+    background: rgba(255, 255, 255, 0.13);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 12px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
 }
 
-/* =========================================
-CARDS
-========================================= */
-
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:18px;
-    margin-bottom:25px;
+.led {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #E52860;
+    transition: 0.3s;
+    box-shadow: 0 0 10px rgba(229, 40, 96, 0.4);
 }
 
-.cardInfo{
-    background:white;
-    border-radius:14px;
-    border:1px solid #dbe2ea;
-    padding:22px;
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 25px;
 }
 
-.cardTitle{
-    color:#64748b;
-    font-size:14px;
-    margin-bottom:12px;
+.cardInfo {
+    background: #FFF9FB;
+    border-radius: 14px;
+    border: 1px solid var(--borde);
+    border-top: 4px solid var(--frambuesa);
+    padding: 22px;
+    box-shadow: 0 5px 18px rgba(135, 13, 44, 0.07);
 }
 
-.cardValue{
-    font-size:34px;
-    font-weight:600;
+.cardTitle {
+    color: var(--carmesi);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
 }
 
-.unit{
-    font-size:18px;
-    color:#64748b;
+.cardValue {
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--vino);
 }
 
-/* =========================================
-GRAFICA
-========================================= */
-
-.chartCard{
-    background:white;
-    border-radius:16px;
-    border:1px solid #dbe2ea;
-    padding:25px;
+.unit {
+    font-size: 18px;
+    color: #A34C68;
 }
 
-.chartTop{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:20px;
-    flex-wrap:wrap;
-    gap:15px;
+.chartCard {
+    background: #FFF9FB;
+    border-radius: 16px;
+    border: 1px solid var(--borde);
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(135, 13, 44, 0.07);
 }
 
-.chartTop h2{
-    font-size:24px;
-    font-weight:600;
+.chartTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
-/* =========================================
-BOTONES
-========================================= */
-
-.buttons{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
+.chartTop h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--vino);
 }
 
-.buttons button{
-    border:none;
-    background:#e2e8f0;
-    color:#1e293b;
-    padding:10px 18px;
-    border-radius:8px;
-    cursor:pointer;
-    transition:0.2s;
-    font-size:14px;
+.buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
-.buttons button:hover{
-    background:#cbd5e1;
+.buttons button {
+    border: 1px solid #EAC0CD;
+    background: #FBE5EC;
+    color: var(--carmesi);
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 14px;
+    font-weight: 600;
 }
 
-.buttons .active{
-    background:#f59e0b;
-    color:white;
+.buttons button:hover {
+    background: #F4B5C7;
 }
 
-/* =========================================
-VALOR ACTUAL
-========================================= */
-
-.currentValue{
-    margin-top:20px;
-    font-size:17px;
-    color:#475569;
+.buttons .active {
+    background: linear-gradient(120deg, #870D2C, #E52860);
+    color: white;
+    border-color: var(--carmesi);
 }
 
-#valorActual{
-    font-weight:600;
-    color:#0f172a;
+.currentValue {
+    margin-top: 20px;
+    font-size: 17px;
+    color: #8B3A54;
 }
 
-/* =========================================
-CANVAS
-========================================= */
-
-canvas{
-    width:100% !important;
-    height:430px !important;
+#valorActual {
+    font-weight: 700;
+    color: var(--vino);
 }
 
-/* =========================================
-RESPONSIVE
-========================================= */
+canvas {
+    width: 100% !important;
+    height: 430px !important;
+}
 
-@media(max-width:700px){
-
-    body{
-        padding:15px;
+@media(max-width:700px) {
+    body {
+        padding: 15px;
     }
 
-    .header{
-        flex-direction:column;
-        align-items:flex-start;
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .chartTop{
-        flex-direction:column;
-        align-items:flex-start;
+    .chartTop {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .buttons{
-        width:100%;
+    .buttons {
+        width: 100%;
     }
 
-    .buttons button{
-        flex:1;
+    .buttons button {
+        flex: 1;
     }
-
 }
-
 </style>
-
 </head>
 
 <body>
 
 <div class="container">
 
-    <!-- HEADER -->
-
+    <!-- ENCABEZADO -->
     <div class="header">
-
         <div>
-
             <h1>Monitoreo Solar</h1>
-
             <div class="subtitle">
                 Supervisión del sistema fotovoltaico
             </div>
-
         </div>
 
         <div class="status">
-
             <div class="led" id="led"></div>
-
-            <span id="estado">
-                Sistema apagado
-            </span>
-
+            <span id="estado">Sin conexión</span>
         </div>
-
     </div>
 
-    <!-- CARDS -->
-
+    <!-- TARJETAS -->
     <div class="grid">
 
         <div class="cardInfo">
-
-            <div class="cardTitle">
-                Voltaje
-            </div>
-
+            <div class="cardTitle">Voltaje</div>
             <div class="cardValue">
-
-                <span id="voltajeCard">
-                    0
-                </span>
-
-                <span class="unit">
-                    V
-                </span>
-
+                <span id="voltajeCard">0</span>
+                <span class="unit">V</span>
             </div>
-
         </div>
 
         <div class="cardInfo">
-
-            <div class="cardTitle">
-                Corriente
-            </div>
-
+            <div class="cardTitle">Corriente</div>
             <div class="cardValue">
-
-                <span id="corrienteCard">
-                    0
-                </span>
-
-                <span class="unit">
-                    A
-                </span>
-
+                <span id="corrienteCard">0</span>
+                <span class="unit">A</span>
             </div>
-
         </div>
 
         <div class="cardInfo">
-
-            <div class="cardTitle">
-                Potencia
-            </div>
-
+            <div class="cardTitle">Potencia</div>
             <div class="cardValue">
-
-                <span id="potenciaCard">
-                    0
-                </span>
-
-                <span class="unit">
-                    W
-                </span>
-
+                <span id="potenciaCard">0</span>
+                <span class="unit">W</span>
             </div>
-
         </div>
 
     </div>
 
-    <!-- GRAFICA -->
-
+    <!-- GRÁFICA -->
     <div class="chartCard">
 
         <div class="chartTop">
-
-            <h2 id="tituloGrafica">
-                Voltaje
-            </h2>
+            <h2 id="tituloGrafica">Voltaje</h2>
 
             <div class="buttons">
-
-                <button
-                    id="btnVoltaje"
-                    class="active"
+                <button id="btnVoltaje" class="active"
                     onclick="cambiarVariable('voltaje')">
-
                     Voltaje
-
                 </button>
 
-                <button
-                    id="btnCorriente"
+                <button id="btnCorriente"
                     onclick="cambiarVariable('corriente')">
-
                     Corriente
-
                 </button>
 
-                <button
-                    id="btnPotencia"
+                <button id="btnPotencia"
                     onclick="cambiarVariable('potencia')">
-
                     Potencia
-
                 </button>
-
             </div>
-
         </div>
 
         <canvas id="grafica"></canvas>
 
         <div class="currentValue">
-
             Valor actual:
-            <span id="valorActual">
-                0
-            </span>
-
+            <span id="valorActual">0</span>
         </div>
 
     </div>
@@ -379,295 +301,297 @@ RESPONSIVE
 </div>
 
 <script>
+// ============================================================
+// CONFIGURACIÓN MQTT
+// ============================================================
+
+const MQTT_BROKER = "wss://broker.hivemq.com:8884/mqtt";
+
+const MQTT_OPTIONS = {
+    clientId: "web_" + Math.random().toString(16).substring(2, 10),
+    clean: true,
+    connectTimeout: 4000,
+    reconnectPeriod: 3000
+};
+
+// ============================================================
+// TOPICS MQTT
+// ============================================================
+
+const TOPIC_VOLTAJE = "fotovoltaico/voltaje";
+const TOPIC_CORRIENTE = "fotovoltaico/corriente";
+const TOPIC_POTENCIA = "fotovoltaico/potencia";
+
+// ============================================================
+// VARIABLES Y COLORES
+// ============================================================
 
 let variableActual = "voltaje";
 
 const history = {
-
     time: [],
     voltaje: [],
     corriente: [],
     potencia: []
-
 };
 
 const MAX_PUNTOS = 60;
 
-const ctx = document
-.getElementById("grafica")
-.getContext("2d");
+const colores = {
+    voltaje: {
+        linea: "#E52860",
+        fondo: "rgba(229,40,96,0.12)"
+    },
+    corriente: {
+        linea: "#870D2C",
+        fondo: "rgba(135,13,44,0.12)"
+    },
+    potencia: {
+        linea: "#B94A77",
+        fondo: "rgba(185,74,119,0.12)"
+    }
+};
+
+// ============================================================
+// CONFIGURACIÓN DE GRÁFICA
+// ============================================================
+
+const ctx = document.getElementById("grafica").getContext("2d");
 
 const chart = new Chart(ctx, {
-
     type: "line",
 
     data: {
-
         labels: [],
-
         datasets: [{
-
             label: "Voltaje",
-
             data: [],
-
-            borderColor: "#f59e0b",
-
-            backgroundColor: "rgba(245,158,11,0.12)",
-
-            borderWidth: 2,
-
-            tension:0.25,
-
-            fill:true,
-
-            pointRadius:2
-
+            borderColor: colores.voltaje.linea,
+            backgroundColor: colores.voltaje.fondo,
+            borderWidth: 2.5,
+            tension: 0.25,
+            fill: true,
+            pointRadius: 2,
+            pointBackgroundColor: "#870D2C"
         }]
     },
 
     options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
 
-        responsive:true,
-
-        maintainAspectRatio:false,
-
-        animation:false,
-
-        plugins:{
-
-            legend:{
-                display:true
+        plugins: {
+            legend: {
+                display: true,
+                labels: {
+                    color: "#390713"
+                }
             }
-
         },
 
-        scales:{
-
-            x:{
-
-                grid:{
-                    color:"#eef2f7"
+        scales: {
+            x: {
+                ticks: {
+                    color: "#8B3A54"
+                },
+                grid: {
+                    color: "#F3DCE4"
                 }
-
             },
 
-            y:{
-
-                beginAtZero:true,
-
-                grid:{
-                    color:"#eef2f7"
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: "#8B3A54"
+                },
+                grid: {
+                    color: "#F3DCE4"
                 }
-
             }
-
         }
-
     }
-
 });
 
-function cambiarVariable(variable){
+// ============================================================
+// CAMBIAR VARIABLE DE LA GRÁFICA
+// ============================================================
 
+function cambiarVariable(variable) {
     variableActual = variable;
 
-    document
-    .getElementById("tituloGrafica")
-    .innerHTML =
-    variable.charAt(0).toUpperCase() +
-    variable.slice(1);
+    document.getElementById("tituloGrafica").textContent =
+        variable.charAt(0).toUpperCase() + variable.slice(1);
 
-    document
-    .getElementById("btnVoltaje")
-    .classList.remove("active");
+    ["voltaje", "corriente", "potencia"].forEach(v => {
+        document.getElementById(
+            "btn" + v.charAt(0).toUpperCase() + v.slice(1)
+        ).classList.remove("active");
+    });
 
-    document
-    .getElementById("btnCorriente")
-    .classList.remove("active");
+    document.getElementById(
+        "btn" + variable.charAt(0).toUpperCase() + variable.slice(1)
+    ).classList.add("active");
 
-    document
-    .getElementById("btnPotencia")
-    .classList.remove("active");
-
-    if(variable === "voltaje"){
-
-        document
-        .getElementById("btnVoltaje")
-        .classList.add("active");
-
-        chart.data.datasets[0].borderColor =
-        "#f59e0b";
-
-        chart.data.datasets[0].backgroundColor =
-        "rgba(245,158,11,0.12)";
-    }
-
-    if(variable === "corriente"){
-
-        document
-        .getElementById("btnCorriente")
-        .classList.add("active");
-
-        chart.data.datasets[0].borderColor =
-        "#16a34a";
-
-        chart.data.datasets[0].backgroundColor =
-        "rgba(22,163,74,0.12)";
-    }
-
-    if(variable === "potencia"){
-
-        document
-        .getElementById("btnPotencia")
-        .classList.add("active");
-
-        chart.data.datasets[0].borderColor =
-        "#2563eb";
-
-        chart.data.datasets[0].backgroundColor =
-        "rgba(37,99,235,0.12)";
-    }
+    chart.data.datasets[0].borderColor = colores[variable].linea;
+    chart.data.datasets[0].backgroundColor = colores[variable].fondo;
 
     actualizarGrafica();
-
 }
 
-function actualizarGrafica(){
+// ============================================================
+// ACTUALIZAR GRÁFICA Y TARJETAS
+// ============================================================
 
+function actualizarGrafica() {
     chart.data.labels = history.time;
-
-    chart.data.datasets[0].data =
-    history[variableActual];
-
+    chart.data.datasets[0].data = history[variableActual];
     chart.data.datasets[0].label =
-    variableActual;
+        variableActual.charAt(0).toUpperCase() +
+        variableActual.slice(1);
 
     chart.update();
 
-    const voltaje =
-    history.voltaje[
-        history.voltaje.length - 1
-    ] || 0;
+    const voltaje = history.voltaje.at(-1) || 0;
+    const corriente = history.corriente.at(-1) || 0;
+    const potencia = history.potencia.at(-1) || 0;
 
-    const corriente =
-    history.corriente[
-        history.corriente.length - 1
-    ] || 0;
+    document.getElementById("voltajeCard").textContent =
+        voltaje.toFixed(1);
 
-    const potencia =
-    history.potencia[
-        history.potencia.length - 1
-    ] || 0;
+    document.getElementById("corrienteCard").textContent =
+        corriente.toFixed(2);
 
-    document
-    .getElementById("voltajeCard")
-    .innerHTML =
-    voltaje.toFixed(1);
+    document.getElementById("potenciaCard").textContent =
+        potencia.toFixed(1);
 
-    document
-    .getElementById("corrienteCard")
-    .innerHTML =
-    corriente.toFixed(2);
+    const unidades = {
+        voltaje: " V",
+        corriente: " A",
+        potencia: " W"
+    };
 
-    document
-    .getElementById("potenciaCard")
-    .innerHTML =
-    potencia.toFixed(1);
+    const actual = history[variableActual].at(-1) || 0;
 
-    let unidad = "";
+    document.getElementById("valorActual").textContent =
+        actual.toFixed(2) + unidades[variableActual];
 
-    if(variableActual === "voltaje"){
-        unidad = " V";
+    // ESTADO DE GENERACIÓN
+    if (potencia > 0) {
+        document.getElementById("led").style.background = "#22C55E";
+        document.getElementById("estado").textContent =
+            "Sistema operando";
+    } else {
+        document.getElementById("led").style.background = "#E52860";
+        document.getElementById("estado").textContent =
+            "Sin generación";
     }
-
-    if(variableActual === "corriente"){
-        unidad = " A";
-    }
-
-    if(variableActual === "potencia"){
-        unidad = " W";
-    }
-
-    const actual =
-    history[variableActual][
-        history[variableActual].length - 1
-    ] || 0;
-
-    document
-    .getElementById("valorActual")
-    .innerHTML =
-    actual.toFixed(2) + unidad;
-
-    if(potencia > 0){
-
-        document
-        .getElementById("led")
-        .style.background =
-        "#16a34a";
-
-        document
-        .getElementById("estado")
-        .innerHTML =
-        "Sistema operando";
-
-    }else{
-
-        document
-        .getElementById("led")
-        .style.background =
-        "#dc2626";
-
-        document
-        .getElementById("estado")
-        .innerHTML =
-        "Sistema apagado";
-
-    }
-
 }
 
-async function obtenerDatos(){
+// ============================================================
+// RECEPCIÓN DE DATOS
+// ============================================================
 
-    try{
+function recibirDato(variable, valor) {
+    const hora = new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 
-        const response =
-        await fetch("/history");
+    if (variable === "voltaje") {
+        history.time.push(hora);
+    }
 
-        if(!response.ok){
-            return;
+    history[variable].push(valor);
+
+    if (history.time.length > MAX_PUNTOS) {
+        history.time.shift();
+    }
+
+    if (history[variable].length > MAX_PUNTOS) {
+        history[variable].shift();
+    }
+
+    actualizarGrafica();
+}
+
+// ============================================================
+// CONEXIÓN MQTT
+// ============================================================
+
+console.log("Conectando al broker MQTT...");
+
+const mqttClient = mqtt.connect(MQTT_BROKER, MQTT_OPTIONS);
+
+mqttClient.on("connect", function() {
+    console.log("Conectado al broker MQTT");
+
+    mqttClient.subscribe(
+        [TOPIC_VOLTAJE, TOPIC_CORRIENTE, TOPIC_POTENCIA],
+        function(error) {
+            if (error) {
+                console.log("Error al suscribirse:", error);
+                return;
+            }
+
+            console.log("Suscrito a los topics del sistema");
         }
+    );
+});
 
-        const data =
-        await response.json();
+// ============================================================
+// MENSAJES MQTT
+// ============================================================
 
-        history.time =
-        (data.time || []).slice(-MAX_PUNTOS);
+mqttClient.on("message", function(topic, message) {
+    const valor = parseFloat(message.toString());
 
-        history.voltaje =
-        (data.voltaje || []).slice(-MAX_PUNTOS);
-
-        history.corriente =
-        (data.corriente || []).slice(-MAX_PUNTOS);
-
-        history.potencia =
-        (data.potencia || []).slice(-MAX_PUNTOS);
-
-        actualizarGrafica();
-
-    }catch(error){
-
-        console.log(error);
-
+    if (isNaN(valor)) {
+        console.log("Dato MQTT no válido:", message.toString());
+        return;
     }
 
-}
+    if (topic === TOPIC_VOLTAJE) {
+        history.voltaje.push(valor);
+    }
 
-setInterval(obtenerDatos,60000);
+    if (topic === TOPIC_CORRIENTE) {
+        history.corriente.push(valor);
+    }
 
-obtenerDatos();
+    if (topic === TOPIC_POTENCIA) {
+        history.potencia.push(valor);
+    }
+
+    ["voltaje", "corriente", "potencia"].forEach(variable => {
+        if (history[variable].length > MAX_PUNTOS) {
+            history[variable].shift();
+        }
+    });
+
+    actualizarGrafica();
+});
+
+// ============================================================
+// ERRORES Y DESCONEXIÓN
+// ============================================================
+
+mqttClient.on("error", function(error) {
+    console.log("Error MQTT:", error);
+});
+
+mqttClient.on("offline", function() {
+    document.getElementById("led").style.background = "#E52860";
+    document.getElementById("estado").textContent =
+        "Sin conexión MQTT";
+});
+
+mqttClient.on("reconnect", function() {
+    document.getElementById("estado").textContent =
+        "Reconectando...";
+});
 
 </script>
-
 </body>
 </html>
